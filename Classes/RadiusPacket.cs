@@ -129,6 +129,9 @@ namespace Flexinets.Radius
                 case "string":
                     return Encoding.Default.GetString(contentBytes);
 
+                case "tagged-string":
+                    return Encoding.Default.GetString(contentBytes);
+
                 case "binary":
                     // If this is a password attribute it must be decrypted
                     if (code == 2)
@@ -142,6 +145,9 @@ namespace Flexinets.Radius
                     }
 
                 case "integer":
+                    return BitConverter.ToUInt32(contentBytes.Reverse().ToArray(), 0);
+
+                case "tagged-integer":
                     return BitConverter.ToUInt32(contentBytes.Reverse().ToArray(), 0);
 
                 case "ipaddr":
