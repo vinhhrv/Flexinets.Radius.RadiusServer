@@ -181,9 +181,15 @@ namespace Flexinets.Radius
             packetbytes[0] = (Byte)packet.Code;
             packetbytes[1] = packet.Identifier;
 
-
             foreach (var attribute in packet.Attributes)
             {
+                var attributeType = _dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
+                if (!_dictionary.Attributes.ContainsValue(attributeType.Value))
+                {
+                    _log.WarnFormat("Ignoring unknown attribute {0}", attribute.Key);
+                    continue;
+                }
+
                 var contentBytes = new Byte[0];
                 if (attribute.Value.GetType() == typeof(String))
                 {
@@ -200,16 +206,10 @@ namespace Flexinets.Radius
                 }
 
                 var attributeLength = (Byte)(2 + contentBytes.Length);
-
-                // try a normal attribute
-                var attributeType = _dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
-
                 var attributeBytes = new Byte[attributeLength];
                 attributeBytes[0] = attributeType.Value.Value;
                 attributeBytes[1] = attributeLength;
                 Buffer.BlockCopy(contentBytes, 0, attributeBytes, 2, contentBytes.Length);
-
-
                 Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
                 Buffer.BlockCopy(attributeBytes, 0, packetbytes, packetbytes.Length - attributeBytes.Length, attributeBytes.Length);
             }
