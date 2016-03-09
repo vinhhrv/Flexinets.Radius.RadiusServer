@@ -2,11 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Flexinets.Radius
 {
@@ -183,13 +183,7 @@ namespace Flexinets.Radius
 
             foreach (var attribute in packet.Attributes)
             {
-                var attributeType = _dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
-                if (!_dictionary.Attributes.ContainsValue(attributeType.Value))
-                {
-                    _log.WarnFormat("Ignoring unknown attribute {0}", attribute.Key);
-                    continue;
-                }
-
+                // todo add logic to check attribute type matches actual type
                 var contentBytes = new Byte[0];
                 if (attribute.Value.GetType() == typeof(String))
                 {
@@ -200,18 +194,57 @@ namespace Flexinets.Radius
                     contentBytes = BitConverter.GetBytes((UInt32)attribute.Value);
                     Array.Reverse(contentBytes);
                 }
+                else if (attribute.Value.GetType() == typeof(Byte[]))
+                {
+                    contentBytes = (Byte[])attribute.Value;
+                }
                 else
                 {
                     throw new NotImplementedException();
                 }
 
-                var attributeLength = (Byte)(2 + contentBytes.Length);
-                var attributeBytes = new Byte[attributeLength];
-                attributeBytes[0] = attributeType.Value.Value;
-                attributeBytes[1] = attributeLength;
-                Buffer.BlockCopy(contentBytes, 0, attributeBytes, 2, contentBytes.Length);
-                Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
-                Buffer.BlockCopy(attributeBytes, 0, packetbytes, packetbytes.Length - attributeBytes.Length, attributeBytes.Length);
+
+                // Figure out what kind of attribute this is
+                var attributeType = _dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
+                if (_dictionary.Attributes.ContainsValue(attributeType.Value))
+                {
+                    var attributeLength = (Byte)(2 + contentBytes.Length);
+                    var attributeBytes = new Byte[attributeLength];
+                    attributeBytes[0] = attributeType.Value.Value;
+                    attributeBytes[1] = attributeLength;
+                    Buffer.BlockCopy(contentBytes, 0, attributeBytes, 2, contentBytes.Length);
+
+                    // Add to packet
+                    Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
+                    Buffer.BlockCopy(attributeBytes, 0, packetbytes, packetbytes.Length - attributeBytes.Length, attributeBytes.Length);
+                }
+                else
+                {
+                    // Maybe this is a vendor attribute?
+                    var vendorAttributeType = _dictionary.VendorAttributes.SingleOrDefault(o => o.Name == attribute.Key);
+                    if (vendorAttributeType != null)
+                    {
+                        var attributeLength = (Byte)(8 + contentBytes.Length);  // minimum length for a VSA is 8 + content
+                        var attributeBytes = new Byte[attributeLength];
+                        attributeBytes[0] = 26; // VSA type
+                        attributeBytes[1] = attributeLength;    // total length
+
+                        var vendorId = BitConverter.GetBytes(vendorAttributeType.VendorId);
+                        Array.Reverse(vendorId);
+                        Buffer.BlockCopy(vendorId, 0, attributeBytes, 2, 4);
+                        attributeBytes[6] = (Byte)vendorAttributeType.Code; // todo, should be byte, some use more? wtf?
+                        attributeBytes[7] = (Byte)(2 + contentBytes.Length);  // length of the vsa part
+                        Buffer.BlockCopy(contentBytes, 0, attributeBytes, 8, contentBytes.Length);
+
+                        // Add to packet
+                        Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
+                        Buffer.BlockCopy(attributeBytes, 0, packetbytes, packetbytes.Length - attributeBytes.Length, attributeBytes.Length);
+                    }
+                    else
+                    {
+                        _log.DebugFormat("Ignoring unknown attribute {0}", attribute.Key);
+                    }
+                }
             }
 
 
@@ -220,7 +253,7 @@ namespace Flexinets.Radius
             packetbytes[2] = responselengthbytes[1];
             packetbytes[3] = responselengthbytes[0];
 
-            // Done last... must include packet length
+            // Done last... includes packet length
             var responseAuthenticator = CreateResponseAuthenticator(packet.Code, packet.SharedSecret, packet.Identifier, packet.Authenticator, (Int16)packetbytes.Length);
             Buffer.BlockCopy(responseAuthenticator, 0, packetbytes, 4, 16);
 
