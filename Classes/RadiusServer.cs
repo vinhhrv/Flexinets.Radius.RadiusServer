@@ -5,6 +5,8 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Linq;
+using System.Security.Cryptography;
 
 namespace Flexinets.Radius
 {
@@ -136,7 +138,7 @@ namespace Flexinets.Radius
 
                 using (var client = new UdpClient())
                 {
-                    var responseBytes = responsepacket.GetBytes();
+                    var responseBytes = GetBytes(responsepacket);
                     client.Send(responseBytes, responseBytes.Length, sender);
                 }
 
@@ -165,6 +167,89 @@ namespace Flexinets.Radius
                 {
                     _log.DebugFormat("{0} : {1} [{2}]", attribute.Key, attribute.Value, attribute.Value.GetType());
                 }
+            }
+        }
+
+
+        /// <summary>
+        /// Get the raw packet bytes
+        /// </summary>
+        /// <returns></returns>
+        private Byte[] GetBytes(IRadiusPacket packet)
+        {
+            var packetbytes = new Byte[20]; // Should be 20 + AVPs...
+            packetbytes[0] = (Byte)packet.Code;
+            packetbytes[1] = packet.Identifier;
+
+
+            foreach (var attribute in packet.Attributes)
+            {
+                var contentBytes = new Byte[0];
+                if (attribute.Value.GetType() == typeof(String))
+                {
+                    contentBytes = Encoding.Default.GetBytes((String)attribute.Value);
+                }
+                else if (attribute.Value.GetType() == typeof(UInt32))
+                {
+                    contentBytes = BitConverter.GetBytes((UInt32)attribute.Value);
+                    Array.Reverse(contentBytes);
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+
+                var attributeLength = (Byte)(2 + contentBytes.Length);
+
+                // try a normal attribute
+                var attributeType = _dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
+
+                var attributeBytes = new Byte[attributeLength];
+                attributeBytes[0] = attributeType.Value.Value;
+                attributeBytes[1] = attributeLength;
+                Buffer.BlockCopy(contentBytes, 0, attributeBytes, 2, contentBytes.Length);
+
+
+                Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
+                Buffer.BlockCopy(attributeBytes, 0, packetbytes, packetbytes.Length - attributeBytes.Length, attributeBytes.Length);
+            }
+
+
+            // Note the order of the bytes...
+            var responselengthbytes = BitConverter.GetBytes(packetbytes.Length);
+            packetbytes[2] = responselengthbytes[1];
+            packetbytes[3] = responselengthbytes[0];
+
+            // Done last... must include packet length
+            var responseAuthenticator = CreateResponseAuthenticator(packet.Code, packet.SharedSecret, packet.Identifier, packet.Authenticator, (Int16)packetbytes.Length);
+            Buffer.BlockCopy(responseAuthenticator, 0, packetbytes, 4, 16);
+
+            return packetbytes;
+        }
+
+
+        /// <summary>
+        /// Creates a response authenticator
+        /// Response authenticator = MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
+        /// </summary>
+        /// <param name="responseCode">The response code to send. This must much the actual response code sent, otherwise the authenticator will be invalid</param>
+        /// <returns>Valid response authenticator for the packet</returns>
+        private Byte[] CreateResponseAuthenticator(PacketCode responseCode, Byte[] radiusSharedSecret, Byte identifier, Byte[] authenticator, Int16 responselength)
+        {
+            var responseAuthenticator = new Byte[20 + radiusSharedSecret.Length];
+            responseAuthenticator[0] = (Byte)responseCode;
+            responseAuthenticator[1] = identifier;
+
+            var responselengthbytes = BitConverter.GetBytes(responselength);
+
+            responseAuthenticator[2] = responselengthbytes[1];
+            responseAuthenticator[3] = responselengthbytes[0];
+            Buffer.BlockCopy(authenticator, 0, responseAuthenticator, 4, 16);
+            Buffer.BlockCopy(radiusSharedSecret, 0, responseAuthenticator, 20, radiusSharedSecret.Length);
+
+            using (var x = MD5CryptoServiceProvider.Create())
+            {
+                return x.ComputeHash(responseAuthenticator);
             }
         }
 

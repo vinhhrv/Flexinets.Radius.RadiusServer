@@ -25,15 +25,6 @@ namespace Flexinets.Radius
             get;
             private set;
         }
-        public Int16 Length
-        {
-            get
-            {
-                // todo wtf?
-                // Code + Identifier + Length + Authenticator... + attributes of course...
-                return 1 + 1 + 2 + 16;
-            }
-        }
         public Byte[] Authenticator
         {
             get;
@@ -168,60 +159,13 @@ namespace Flexinets.Radius
         {
             return new RadiusPacket
             {
+                Attributes = new Dictionary<String, object>(),
                 Code = responseCode,
                 SharedSecret = SharedSecret,
                 Identifier = Identifier,
                 Authenticator = Authenticator,
             };
-        }
-
-
-        /// <summary>
-        /// Creates a response authenticator
-        /// Response authenticator = MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
-        /// </summary>
-        /// <param name="responseCode">The response code to send. This must much the actual response code sent, otherwise the authenticator will be invalid</param>
-        /// <returns>Valid response authenticator for the packet</returns>
-        private Byte[] CreateResponseAuthenticator(PacketCode responseCode, Byte[] radiusSharedSecret, Byte identifier, Byte[] authenticator, Int16 responselength)
-        {
-            var responseAuthenticator = new Byte[20 + radiusSharedSecret.Length];
-            responseAuthenticator[0] = (Byte)responseCode;
-            responseAuthenticator[1] = identifier;
-
-            var responselengthbytes = BitConverter.GetBytes(responselength);
-
-            responseAuthenticator[2] = responselengthbytes[1];
-            responseAuthenticator[3] = responselengthbytes[0];
-            Buffer.BlockCopy(authenticator, 0, responseAuthenticator, 4, 16);
-            Buffer.BlockCopy(radiusSharedSecret, 0, responseAuthenticator, 20, radiusSharedSecret.Length);
-
-            using (MD5 x = MD5CryptoServiceProvider.Create())
-            {
-                return x.ComputeHash(responseAuthenticator);
-            }
-        }
-
-
-        /// <summary>
-        /// Get the raw packet bytes
-        /// </summary>
-        /// <returns></returns>
-        public Byte[] GetBytes()
-        {
-            var packetbytes = new Byte[Length]; // Should be 20 + AVPs...
-            packetbytes[0] = (Byte)Code;
-            packetbytes[1] = Identifier;
-
-            // Note the order of the bytes...
-            var responselengthbytes = BitConverter.GetBytes(Length);
-            packetbytes[2] = responselengthbytes[1];
-            packetbytes[3] = responselengthbytes[0];
-
-            var responseAuthenticator = CreateResponseAuthenticator(Code, SharedSecret, Identifier, Authenticator, Length);
-            Buffer.BlockCopy(responseAuthenticator, 0, packetbytes, 4, 16);
-
-            return packetbytes;
-        }
+        }         
 
 
         /// <summary>
@@ -238,6 +182,29 @@ namespace Flexinets.Radius
             }
 
             return default(T);
+        }
+
+
+        /// <summary>
+        /// Add attribute to packet
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        public void AddAttribute(String name, String value)
+        {
+            Attributes.Add(name, value);
+        }
+        public void AddAttribute(String name, UInt32 value)
+        {
+            Attributes.Add(name, value);
+        }
+        public void AddAttribute(String name, IPAddress value)
+        {
+            Attributes.Add(name, value);
+        }
+        public void AddAttribute(String name, Byte[] value)
+        {
+            Attributes.Add(name, value);
         }
     }
 }
