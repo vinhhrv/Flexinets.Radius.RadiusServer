@@ -22,10 +22,6 @@ namespace Flexinets.Radius
         {
             get;
         }
-        IDictionary<String, Object> Attributes
-        {
-            get;
-        }
         IRadiusPacket CreateResponsePacket(PacketCode responseCode);
 
         T GetAttribute<T>(String name);
