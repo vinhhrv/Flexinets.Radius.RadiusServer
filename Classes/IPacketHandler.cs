@@ -8,7 +8,6 @@ namespace Flexinets.Radius
 {
     public interface IPacketHandler : IDisposable
     {
-        String SharedSecret { get; }
         IRadiusPacket HandlePacket(IRadiusPacket packet);
     }
 }

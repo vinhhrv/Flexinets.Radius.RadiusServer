@@ -12,10 +12,15 @@ namespace Flexinets.Radius
 {
     public sealed class RadiusServer : IDisposable
     {
+        private class PacketHandlerContainer
+        {
+            public IPacketHandler packatHandler;
+            public String secret;
+        }
         private readonly ILog _log = LogManager.GetLogger(typeof(RadiusServer));
         private readonly UdpClient _server;
         private readonly RadiusDictionary _dictionary;
-        private readonly Dictionary<IPAddress, IPacketHandler> _packetHandlers = new Dictionary<IPAddress, IPacketHandler>();
+        private readonly Dictionary<IPAddress, PacketHandlerContainer> _packetHandlers = new Dictionary<IPAddress, PacketHandlerContainer>();
 
         public Boolean Running
         {
@@ -41,9 +46,9 @@ namespace Flexinets.Radius
         /// </summary>
         /// <param name="remoteEndpoint"></param>
         /// <param name="packethandler"></param>
-        public void AddPacketHandler(IPAddress remoteEndpoint, IPacketHandler packethandler)
+        public void AddPacketHandler(IPAddress remoteEndpoint, String secret, IPacketHandler packethandler)
         {
-            _packetHandlers.Add(remoteEndpoint, packethandler);
+            _packetHandlers.Add(remoteEndpoint, new PacketHandlerContainer { secret = secret, packatHandler = packethandler });
         }
 
 
@@ -102,7 +107,7 @@ namespace Flexinets.Radius
                     var handler = _packetHandlers[sender.Address];
                     _log.DebugFormat("Handling packet for remote ip {1} with {0}", handler.GetType(), sender.Address);
 
-                    HandlePacket(handler, packetbytes, sender);
+                    HandlePacket(handler.packatHandler, handler.secret, packetbytes, sender);
                 }
                 catch (Exception ex)
                 {
@@ -117,11 +122,11 @@ namespace Flexinets.Radius
         /// </summary>
         /// <param name="packetbytes"></param>
         /// <param name="sender"></param>
-        private void HandlePacket(IPacketHandler packethandler, Byte[] packetbytes, IPEndPoint sender)
+        private void HandlePacket(IPacketHandler packethandler, String secret, Byte[] packetbytes, IPEndPoint sender)
         {
             try
             {
-                var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes(packethandler.SharedSecret));
+                var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes(secret));
                 _log.InfoFormat("Received {0} from {1}:{2} Id={3}", packet.Code, sender.Address, sender.Port, packet.Identifier);
 
                 if (_log.IsDebugEnabled)
