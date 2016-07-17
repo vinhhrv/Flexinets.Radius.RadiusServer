@@ -10,7 +10,7 @@ namespace Flexinets.Radius
     /// <summary>
     /// This class encapsulates a Radius packet and presents it in a more readable form
     /// </summary>
-    public class RadiusPacket : IRadiusPacket
+    internal class RadiusPacket : IRadiusPacket
     {
         private static readonly ILog _log = LogManager.GetLogger(typeof(RadiusPacket));
 
