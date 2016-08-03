@@ -105,7 +105,7 @@ namespace Flexinets.Radius
                     }
 
                     var handler = _packetHandlers[sender.Address];
-                    _log.DebugFormat("Handling packet for remote ip {1} with {0}", handler.GetType(), sender.Address);
+                    _log.DebugFormat("Handling packet for remote ip {1} with {0}", handler.packatHandler.GetType(), sender.Address);
 
                     HandlePacket(handler.packatHandler, handler.secret, packetbytes, sender);
                 }
