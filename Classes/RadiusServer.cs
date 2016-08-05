@@ -90,12 +90,12 @@ namespace Flexinets.Radius
             if (Running)
             {
                 // Immediately start _listening for the next packet
+                var sender = new IPEndPoint(IPAddress.Any, 0);
+                var packetbytes = _server.EndReceive(ar, ref sender);
                 _server.BeginReceive(new AsyncCallback(ReceiveCallback), null);
 
                 try
                 {
-                    var sender = new IPEndPoint(IPAddress.Any, 0);
-                    var packetbytes = _server.EndReceive(ar, ref sender);
                     _log.DebugFormat("Received packet from {0}:{1}", sender.Address, sender.Port);
 
                     if (!_packetHandlers.ContainsKey(sender.Address))

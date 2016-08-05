@@ -51,7 +51,8 @@ namespace Flexinets.Radius
             Array.Reverse(packetBytes, 2, 2);
             if (packetBytes.Length != BitConverter.ToUInt16(packetBytes, 2))
             {
-                throw new Exception("Packet length does not match");
+                _log.ErrorFormat("Packet length does not match, expected: {0}, actual: {1}", BitConverter.ToUInt16(packetBytes, 2), packetBytes.Length);
+                throw new Exception(String.Format("Packet length does not match, expected: {0}, actual: {1}", BitConverter.ToUInt16(packetBytes, 2), packetBytes.Length));
             }
 
             var radiusPacket = new RadiusPacket
@@ -164,7 +165,7 @@ namespace Flexinets.Radius
                 Identifier = Identifier,
                 Authenticator = Authenticator,
             };
-        }         
+        }
 
 
         /// <summary>

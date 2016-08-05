@@ -2,7 +2,7 @@
 
 namespace Flexinets.Radius
 {
-    public class TestPacketHandler : IPacketHandler
+    public sealed class TestPacketHandler : IPacketHandler
     {
         public IRadiusPacket HandlePacket(IRadiusPacket packet)
         {
