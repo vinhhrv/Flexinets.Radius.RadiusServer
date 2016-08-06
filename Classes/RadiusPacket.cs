@@ -66,7 +66,7 @@ namespace Flexinets.Radius
 
             Buffer.BlockCopy(packetBytes, 4, radiusPacket.Authenticator, 0, 16);
 
-
+            // todo multiple attributes with same name? Allowed?
             // The rest are attribute value pairs
             Int16 i = 20;
             while (i < packetBytes.Length)
@@ -87,14 +87,28 @@ namespace Flexinets.Radius
                     else
                     {
                         var content = ParseContentBytes(vsa.Value, attributeDefinition.Type, typecode, radiusPacket.Authenticator, radiusPacket.SharedSecret);
-                        radiusPacket.Attributes.Add(attributeDefinition.Name, content);
+                        try
+                        {
+                            radiusPacket.Attributes.Add(attributeDefinition.Name, content);
+                        }
+                        catch (ArgumentException aex)
+                        {
+                            _log.Warn($"Duplicate vsa {attributeDefinition.Name}... is this allowed?", aex);
+                        }
                     }
                 }
                 else
                 {
                     var attributeDefinition = dictionary.Attributes[typecode];
                     var content = ParseContentBytes(contentBytes, attributeDefinition.Type, typecode, radiusPacket.Authenticator, radiusPacket.SharedSecret);
-                    radiusPacket.Attributes.Add(attributeDefinition.Name, content);
+                    try
+                    {
+                        radiusPacket.Attributes.Add(attributeDefinition.Name, content);
+                    }
+                    catch (ArgumentException aex)
+                    {
+                        _log.Warn($"Duplicate attribute {attributeDefinition.Name}... is this allowed?", aex);
+                    }
                 }
 
                 i += length;
