@@ -65,8 +65,7 @@ namespace Flexinets.Radius
             };
 
             Buffer.BlockCopy(packetBytes, 4, radiusPacket.Authenticator, 0, 16);
-
-            // todo multiple attributes with same name? Allowed?
+            
             // The rest are attribute value pairs
             Int16 i = 20;
             while (i < packetBytes.Length)

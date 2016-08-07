@@ -48,6 +48,7 @@ namespace Flexinets.Radius
         /// <param name="packethandler"></param>
         public void AddPacketHandler(IPAddress remoteEndpoint, String secret, IPacketHandler packethandler)
         {
+            _log.Info($"Adding packet handler of type {packethandler.GetType()} for remote IP {remoteEndpoint.ToString()}");
             _packetHandlers.Add(remoteEndpoint, new PacketHandlerContainer { secret = secret, packatHandler = packethandler });
         }
 
@@ -191,59 +192,38 @@ namespace Flexinets.Radius
 
             foreach (var attribute in packet.Attributes)
             {
-                // todo add logic to check attribute type matches actual type
-                // todo add support for multiple attributes with same name
-                var contentBytes = new Byte[0];
-                if (attribute.Value.GetType() == typeof(String))
+                // todo add logic to check attribute type matches actual type in dictionary?
+                foreach (var value in attribute.Value)
                 {
-                    contentBytes = Encoding.Default.GetBytes((String)attribute.Value.Single());
-                }
-                else if (attribute.Value.GetType() == typeof(UInt32))
-                {
-                    contentBytes = BitConverter.GetBytes((UInt32)attribute.Value.Single());
-                    Array.Reverse(contentBytes);
-                }
-                else if (attribute.Value.GetType() == typeof(Byte[]))
-                {
-                    contentBytes = (Byte[])attribute.Value.Single();
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
-
-
-                // Figure out what kind of attribute this is
-                var attributeType = _dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
-                if (_dictionary.Attributes.ContainsValue(attributeType.Value))
-                {
-                    var attributeLength = (Byte)(2 + contentBytes.Length);
-                    var attributeBytes = new Byte[attributeLength];
-                    attributeBytes[0] = attributeType.Value.Value;
-                    attributeBytes[1] = attributeLength;
-                    Buffer.BlockCopy(contentBytes, 0, attributeBytes, 2, contentBytes.Length);
-
-                    // Add to packet
-                    Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
-                    Buffer.BlockCopy(attributeBytes, 0, packetbytes, packetbytes.Length - attributeBytes.Length, attributeBytes.Length);
-                }
-                else
-                {
-                    // Maybe this is a vendor attribute?
-                    var vendorAttributeType = _dictionary.VendorAttributes.SingleOrDefault(o => o.Name == attribute.Key);
-                    if (vendorAttributeType != null)
+                    var contentBytes = new Byte[0];
+                    if (value.GetType() == typeof(String))
                     {
-                        var attributeLength = (Byte)(8 + contentBytes.Length);  // minimum length for a VSA is 8 + content
-                        var attributeBytes = new Byte[attributeLength];
-                        attributeBytes[0] = 26; // VSA type
-                        attributeBytes[1] = attributeLength;    // total length
+                        contentBytes = Encoding.Default.GetBytes((String)value);
+                    }
+                    else if (value.GetType() == typeof(UInt32))
+                    {
+                        contentBytes = BitConverter.GetBytes((UInt32)value);
+                        Array.Reverse(contentBytes);
+                    }
+                    else if (value.GetType() == typeof(Byte[]))
+                    {
+                        contentBytes = (Byte[])value;
+                    }
+                    else
+                    {
+                        throw new NotImplementedException();
+                    }
 
-                        var vendorId = BitConverter.GetBytes(vendorAttributeType.VendorId);
-                        Array.Reverse(vendorId);
-                        Buffer.BlockCopy(vendorId, 0, attributeBytes, 2, 4);
-                        attributeBytes[6] = (Byte)vendorAttributeType.Code; // todo, should be byte, some use more? wtf?
-                        attributeBytes[7] = (Byte)(2 + contentBytes.Length);  // length of the vsa part
-                        Buffer.BlockCopy(contentBytes, 0, attributeBytes, 8, contentBytes.Length);
+
+                    // Figure out what kind of attribute this is
+                    var attributeType = _dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
+                    if (_dictionary.Attributes.ContainsValue(attributeType.Value))
+                    {
+                        var attributeLength = (Byte)(2 + contentBytes.Length);
+                        var attributeBytes = new Byte[attributeLength];
+                        attributeBytes[0] = attributeType.Value.Value;
+                        attributeBytes[1] = attributeLength;
+                        Buffer.BlockCopy(contentBytes, 0, attributeBytes, 2, contentBytes.Length);
 
                         // Add to packet
                         Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
@@ -251,7 +231,30 @@ namespace Flexinets.Radius
                     }
                     else
                     {
-                        _log.DebugFormat("Ignoring unknown attribute {0}", attribute.Key);
+                        // Maybe this is a vendor attribute?
+                        var vendorAttributeType = _dictionary.VendorAttributes.SingleOrDefault(o => o.Name == attribute.Key);
+                        if (vendorAttributeType != null)
+                        {
+                            var attributeLength = (Byte)(8 + contentBytes.Length);  // minimum length for a VSA is 8 + content
+                            var attributeBytes = new Byte[attributeLength];
+                            attributeBytes[0] = 26; // VSA type
+                            attributeBytes[1] = attributeLength;    // total length
+
+                            var vendorId = BitConverter.GetBytes(vendorAttributeType.VendorId);
+                            Array.Reverse(vendorId);
+                            Buffer.BlockCopy(vendorId, 0, attributeBytes, 2, 4);
+                            attributeBytes[6] = (Byte)vendorAttributeType.Code; // todo, should be byte, some use more? wtf?
+                            attributeBytes[7] = (Byte)(2 + contentBytes.Length);  // length of the vsa part
+                            Buffer.BlockCopy(contentBytes, 0, attributeBytes, 8, contentBytes.Length);
+
+                            // Add to packet
+                            Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
+                            Buffer.BlockCopy(attributeBytes, 0, packetbytes, packetbytes.Length - attributeBytes.Length, attributeBytes.Length);
+                        }
+                        else
+                        {
+                            _log.DebugFormat("Ignoring unknown attribute {0}", attribute.Key);
+                        }
                     }
                 }
             }
