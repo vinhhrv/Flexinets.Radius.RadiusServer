@@ -29,7 +29,7 @@ namespace Flexinets.Radius
             get;
             private set;
         }
-        public IDictionary<String, Object> Attributes
+        public IDictionary<String, List<Object>> Attributes
         {
             get;
             set;
@@ -58,7 +58,7 @@ namespace Flexinets.Radius
             var radiusPacket = new RadiusPacket
             {
                 SharedSecret = radiusSharedSecret,
-                Attributes = new Dictionary<String, object>(),
+                Attributes = new Dictionary<String, List<object>>(),
                 Identifier = packetBytes[1],
                 Code = (PacketCode)packetBytes[0],
                 Authenticator = new Byte[16]
@@ -82,14 +82,18 @@ namespace Flexinets.Radius
                     var attributeDefinition = dictionary.VendorAttributes.FirstOrDefault(o => o.VendorId == vsa.VendorId && o.Code == vsa.VendorCode);
                     if (attributeDefinition == null)
                     {
-                        _log.WarnFormat("Unknown vsa: {0}:{1}", vsa.VendorId, vsa.VendorCode);
+                        _log.Debug($"Unknown vsa: {vsa.VendorId}:{vsa.VendorCode}");
                     }
                     else
                     {
                         var content = ParseContentBytes(vsa.Value, attributeDefinition.Type, typecode, radiusPacket.Authenticator, radiusPacket.SharedSecret);
                         try
                         {
-                            radiusPacket.Attributes.Add(attributeDefinition.Name, content);
+                            if (!radiusPacket.Attributes.ContainsKey(attributeDefinition.Name))
+                            {
+                                radiusPacket.Attributes.Add(attributeDefinition.Name, new List<object>());
+                            }
+                            radiusPacket.Attributes[attributeDefinition.Name].Add(content);
                         }
                         catch (ArgumentException aex)
                         {
@@ -103,7 +107,11 @@ namespace Flexinets.Radius
                     var content = ParseContentBytes(contentBytes, attributeDefinition.Type, typecode, radiusPacket.Authenticator, radiusPacket.SharedSecret);
                     try
                     {
-                        radiusPacket.Attributes.Add(attributeDefinition.Name, content);
+                        if (!radiusPacket.Attributes.ContainsKey(attributeDefinition.Name))
+                        {
+                            radiusPacket.Attributes.Add(attributeDefinition.Name, new List<object>());
+                        }
+                        radiusPacket.Attributes[attributeDefinition.Name].Add(content);
                     }
                     catch (ArgumentException aex)
                     {
@@ -173,7 +181,7 @@ namespace Flexinets.Radius
         {
             return new RadiusPacket
             {
-                Attributes = new Dictionary<String, object>(),
+                Attributes = new Dictionary<String, List<object>>(),
                 Code = responseCode,
                 SharedSecret = SharedSecret,
                 Identifier = Identifier,
@@ -183,7 +191,8 @@ namespace Flexinets.Radius
 
 
         /// <summary>
-        /// Gets an attribute cast to type
+        /// Gets a single attribute value with name cast to type
+        /// Throws an exception if multiple attributes with the same name are found
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="name"></param>
@@ -192,11 +201,29 @@ namespace Flexinets.Radius
         {
             if (Attributes.ContainsKey(name))
             {
-                return (T)Attributes[name];
+                return (T)Attributes[name].Single();
             }
 
             return default(T);
         }
+
+
+        /// <summary>
+        /// Gets multiple attribute values with the same name cast to type
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public List<T> GetAttributes<T>(String name)
+        {
+            if (Attributes.ContainsKey(name))
+            {
+                return Attributes[name].Cast<T>().ToList();
+            }
+            return new List<T>();
+        }
+
+
 
 
         /// <summary>
@@ -206,19 +233,28 @@ namespace Flexinets.Radius
         /// <param name="value"></param>
         public void AddAttribute(String name, String value)
         {
-            Attributes.Add(name, value);
+            AddAttributeObject(name, value);
         }
         public void AddAttribute(String name, UInt32 value)
         {
-            Attributes.Add(name, value);
+            AddAttributeObject(name, value);
         }
         public void AddAttribute(String name, IPAddress value)
         {
-            Attributes.Add(name, value);
+            AddAttributeObject(name, value);
         }
         public void AddAttribute(String name, Byte[] value)
         {
-            Attributes.Add(name, value);
+            AddAttributeObject(name, value);
+        }
+
+        private void AddAttributeObject(string name, object value)
+        {
+            if (!Attributes.ContainsKey(name))
+            {
+                Attributes.Add(name, new List<object>());
+            }
+            Attributes[name].Add(value);
         }
     }
 }

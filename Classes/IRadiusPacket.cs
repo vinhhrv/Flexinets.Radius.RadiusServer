@@ -31,9 +31,9 @@ namespace Flexinets.Radius
         void AddAttribute(String name, IPAddress value);
         void AddAttribute(String name, Byte[] value);
 
-        IDictionary<String, Object> Attributes 
-        { 
-            get; 
-        } 
+        IDictionary<String, List<Object>> Attributes
+        {
+            get;
+        }
     }
 }

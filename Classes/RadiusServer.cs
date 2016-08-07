@@ -166,11 +166,14 @@ namespace Flexinets.Radius
             {
                 if (attribute.Key == "User-Password")
                 {
-                    _log.Debug(attribute.Key + " length : " + attribute.Value.ToString().Length);
+                    _log.Debug(attribute.Key + " length : " + attribute.Value.First().ToString().Length);
                 }
                 else
                 {
-                    _log.DebugFormat("{0} : {1} [{2}]", attribute.Key, attribute.Value, attribute.Value.GetType());
+                    attribute.Value.ForEach(o =>
+                    {
+                        _log.Debug($"{attribute.Key} : {o} [{o.GetType()}]");
+                    });
                 }
             }
         }
@@ -189,19 +192,20 @@ namespace Flexinets.Radius
             foreach (var attribute in packet.Attributes)
             {
                 // todo add logic to check attribute type matches actual type
+                // todo add support for multiple attributes with same name
                 var contentBytes = new Byte[0];
                 if (attribute.Value.GetType() == typeof(String))
                 {
-                    contentBytes = Encoding.Default.GetBytes((String)attribute.Value);
+                    contentBytes = Encoding.Default.GetBytes((String)attribute.Value.Single());
                 }
                 else if (attribute.Value.GetType() == typeof(UInt32))
                 {
-                    contentBytes = BitConverter.GetBytes((UInt32)attribute.Value);
+                    contentBytes = BitConverter.GetBytes((UInt32)attribute.Value.Single());
                     Array.Reverse(contentBytes);
                 }
                 else if (attribute.Value.GetType() == typeof(Byte[]))
                 {
-                    contentBytes = (Byte[])attribute.Value;
+                    contentBytes = (Byte[])attribute.Value.Single();
                 }
                 else
                 {
