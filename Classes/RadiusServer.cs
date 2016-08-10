@@ -128,7 +128,15 @@ namespace Flexinets.Radius
             try
             {
                 var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes(secret));
-                _log.InfoFormat("Received {0} from {1}:{2} Id={3}", packet.Code, sender.Address, sender.Port, packet.Identifier);
+                if (packet.Code == PacketCode.AccountingRequest)
+                {
+                    _log.InfoFormat($"Received {packet.Code} {packet.GetAttribute<AcctStatusTypes>("Acct-Status-Type")} from {sender.Address}:{sender.Port} Id={packet.Identifier}");
+
+                }
+                else
+                {
+                    _log.InfoFormat($"Received {packet.Code} from {sender.Address}:{sender.Port} Id={packet.Identifier}");
+                }
 
                 if (_log.IsDebugEnabled)
                 {

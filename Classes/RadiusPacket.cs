@@ -65,7 +65,7 @@ namespace Flexinets.Radius
             };
 
             Buffer.BlockCopy(packetBytes, 4, radiusPacket.Authenticator, 0, 16);
-            
+
             // The rest are attribute value pairs
             Int16 i = 20;
             while (i < packetBytes.Length)
@@ -75,47 +75,54 @@ namespace Flexinets.Radius
                 var contentBytes = new Byte[length - 2];
                 Buffer.BlockCopy(packetBytes, i + 2, contentBytes, 0, length - 2);
 
-                if (typecode == 26)
+                try
                 {
-                    var vsa = new VendorSpecificAttribute(contentBytes);
-                    var attributeDefinition = dictionary.VendorAttributes.FirstOrDefault(o => o.VendorId == vsa.VendorId && o.Code == vsa.VendorCode);
-                    if (attributeDefinition == null)
+                    if (typecode == 26)
                     {
-                        _log.Debug($"Unknown vsa: {vsa.VendorId}:{vsa.VendorCode}");
+                        var vsa = new VendorSpecificAttribute(contentBytes);
+                        var attributeDefinition = dictionary.VendorAttributes.FirstOrDefault(o => o.VendorId == vsa.VendorId && o.Code == vsa.VendorCode);
+                        if (attributeDefinition == null)
+                        {
+                            _log.Debug($"Unknown vsa: {vsa.VendorId}:{vsa.VendorCode}");
+                        }
+                        else
+                        {
+                            try
+                            {
+                                var content = ParseContentBytes(vsa.Value, attributeDefinition.Type, typecode, radiusPacket.Authenticator, radiusPacket.SharedSecret);
+                                if (!radiusPacket.Attributes.ContainsKey(attributeDefinition.Name))
+                                {
+                                    radiusPacket.Attributes.Add(attributeDefinition.Name, new List<object>());
+                                }
+                                radiusPacket.Attributes[attributeDefinition.Name].Add(content);
+                            }
+                            catch (Exception ex)
+                            {
+                                _log.Error($"Something went wrong with vsa {attributeDefinition.Name}", ex);
+                            }
+                        }
                     }
                     else
                     {
-                        var content = ParseContentBytes(vsa.Value, attributeDefinition.Type, typecode, radiusPacket.Authenticator, radiusPacket.SharedSecret);
+                        var attributeDefinition = dictionary.Attributes[typecode];
                         try
                         {
+                            var content = ParseContentBytes(contentBytes, attributeDefinition.Type, typecode, radiusPacket.Authenticator, radiusPacket.SharedSecret);
                             if (!radiusPacket.Attributes.ContainsKey(attributeDefinition.Name))
                             {
                                 radiusPacket.Attributes.Add(attributeDefinition.Name, new List<object>());
                             }
                             radiusPacket.Attributes[attributeDefinition.Name].Add(content);
                         }
-                        catch (ArgumentException aex)
+                        catch (Exception ex)
                         {
-                            _log.Warn($"Duplicate vsa {attributeDefinition.Name}... is this allowed?", aex);
+                            _log.Error($"Something went wrong with vsa {attributeDefinition.Name}", ex);
                         }
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    var attributeDefinition = dictionary.Attributes[typecode];
-                    var content = ParseContentBytes(contentBytes, attributeDefinition.Type, typecode, radiusPacket.Authenticator, radiusPacket.SharedSecret);
-                    try
-                    {
-                        if (!radiusPacket.Attributes.ContainsKey(attributeDefinition.Name))
-                        {
-                            radiusPacket.Attributes.Add(attributeDefinition.Name, new List<object>());
-                        }
-                        radiusPacket.Attributes[attributeDefinition.Name].Add(content);
-                    }
-                    catch (ArgumentException aex)
-                    {
-                        _log.Warn($"Duplicate attribute {attributeDefinition.Name}... is this allowed?", aex);
-                    }
+                    _log.Error($"Something went wrong parsing attribute {typecode}", ex);
                 }
 
                 i += length;
