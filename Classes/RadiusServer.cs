@@ -64,7 +64,7 @@ namespace Flexinets.Radius
             Running = true;
             _server.BeginReceive(new AsyncCallback(ReceiveCallback), null);
 
-            _log.Info("Server started");
+            _log.Info("Server started");          
         }
 
 
@@ -90,23 +90,24 @@ namespace Flexinets.Radius
         {
             if (Running)
             {
-                // Immediately start _listening for the next packet
                 var sender = new IPEndPoint(IPAddress.Any, 0);
                 var packetbytes = _server.EndReceive(ar, ref sender);
+
+                // Immediately start listening for the next packet
                 _server.BeginReceive(new AsyncCallback(ReceiveCallback), null);
 
                 try
                 {
-                    _log.DebugFormat("Received packet from {0}:{1}", sender.Address, sender.Port);
+                    _log.Debug($"Received packet from {sender.Address}:{sender.Port}");
 
                     if (!_packetHandlers.ContainsKey(sender.Address))
                     {
-                        _log.ErrorFormat("No packet handler found for remote ip {0}", sender.Address);
+                        _log.Error($"No packet handler found for remote ip {sender.Address}");
                         return;
                     }
 
                     var handler = _packetHandlers[sender.Address];
-                    _log.DebugFormat("Handling packet for remote ip {1} with {0}", handler.packatHandler.GetType(), sender.Address);
+                    _log.Debug($"Handling packet for remote ip {handler.packatHandler.GetType()} with {sender.Address}");
 
                     HandlePacket(handler.packatHandler, handler.secret, packetbytes, sender);
                 }
@@ -130,12 +131,12 @@ namespace Flexinets.Radius
                 var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes(secret));
                 if (packet.Code == PacketCode.AccountingRequest)
                 {
-                    _log.InfoFormat($"Received {packet.Code} {packet.GetAttribute<AcctStatusTypes>("Acct-Status-Type")} from {sender.Address}:{sender.Port} Id={packet.Identifier}");
+                    _log.Info($"Received {packet.Code} {packet.GetAttribute<AcctStatusTypes>("Acct-Status-Type")} from {sender.Address}:{sender.Port} Id={packet.Identifier}");
 
                 }
                 else
                 {
-                    _log.InfoFormat($"Received {packet.Code} from {sender.Address}:{sender.Port} Id={packet.Identifier}");
+                    _log.Info($"Received {packet.Code} from {sender.Address}:{sender.Port} Id={packet.Identifier}");
                 }
 
                 if (_log.IsDebugEnabled)
@@ -148,7 +149,7 @@ namespace Flexinets.Radius
                 var responsepacket = packethandler.HandlePacket(packet);
                 sw.Stop();
 
-                _log.DebugFormat("{0}:{1} Id={2}, Received {3} from handler in {4}ms", sender.Address, sender.Port, responsepacket.Identifier, responsepacket.Code, sw.ElapsedMilliseconds);
+                _log.Debug($"{sender.Address}:{sender.Port} Id={responsepacket.Identifier}, Received {responsepacket.Code} from handler in {sw.ElapsedMilliseconds}ms");
 
                 using (var client = new UdpClient())
                 {
@@ -156,7 +157,7 @@ namespace Flexinets.Radius
                     client.Send(responseBytes, responseBytes.Length, sender);
                 }
 
-                _log.InfoFormat("{0} sent to {1}:{2} Id={3}", responsepacket.Code, sender.Address, sender.Port, responsepacket.Identifier);
+                _log.Info($"{responsepacket.Code} sent to {sender.Address}:{sender.Port} Id={responsepacket.Identifier}");
             }
             catch (Exception ex)
             {
@@ -175,14 +176,11 @@ namespace Flexinets.Radius
             {
                 if (attribute.Key == "User-Password")
                 {
-                    _log.Debug(attribute.Key + " length : " + attribute.Value.First().ToString().Length);
+                    _log.Debug($"{attribute.Key} length : {attribute.Value.First().ToString().Length}");
                 }
                 else
                 {
-                    attribute.Value.ForEach(o =>
-                    {
-                        _log.Debug($"{attribute.Key} : {o} [{o.GetType()}]");
-                    });
+                    attribute.Value.ForEach(o => _log.Debug($"{attribute.Key} : {o} [{o.GetType()}]"));
                 }
             }
         }
@@ -216,6 +214,10 @@ namespace Flexinets.Radius
                     else if (value.GetType() == typeof(Byte[]))
                     {
                         contentBytes = (Byte[])value;
+                    }
+                    else if (value.GetType() == typeof(IPAddress))
+                    {
+                        contentBytes = ((IPAddress)value).GetAddressBytes();
                     }
                     else
                     {
@@ -261,7 +263,7 @@ namespace Flexinets.Radius
                         }
                         else
                         {
-                            _log.DebugFormat("Ignoring unknown attribute {0}", attribute.Key);
+                            _log.Debug($"Ignoring unknown attribute {attribute.Key}");
                         }
                     }
                 }
@@ -273,8 +275,12 @@ namespace Flexinets.Radius
             packetbytes[2] = responselengthbytes[1];
             packetbytes[3] = responselengthbytes[0];
 
+            // todo hack...
+            var attributes = new Byte[packetbytes.Length - 20];
+            Buffer.BlockCopy(packetbytes, 20, attributes, 0, attributes.Length);
+
             // Done last... includes packet length
-            var responseAuthenticator = CreateResponseAuthenticator(packet.Code, packet.SharedSecret, packet.Identifier, packet.Authenticator, (Int16)packetbytes.Length);
+            var responseAuthenticator = CreateResponseAuthenticator(packet.Code, packet.SharedSecret, packet.Identifier, packet.Authenticator, (Int16)packetbytes.Length, attributes);
             Buffer.BlockCopy(responseAuthenticator, 0, packetbytes, 4, 16);
 
             return packetbytes;
@@ -287,22 +293,23 @@ namespace Flexinets.Radius
         /// </summary>
         /// <param name="responseCode">The response code to send. This must much the actual response code sent, otherwise the authenticator will be invalid</param>
         /// <returns>Valid response authenticator for the packet</returns>
-        private Byte[] CreateResponseAuthenticator(PacketCode responseCode, Byte[] radiusSharedSecret, Byte identifier, Byte[] authenticator, Int16 responselength)
+        private Byte[] CreateResponseAuthenticator(PacketCode responseCode, Byte[] radiusSharedSecret, Byte identifier, Byte[] requestAuthenticator, Int16 responselength, Byte[] attributes)
         {
-            var responseAuthenticator = new Byte[20 + radiusSharedSecret.Length];
+            var responseAuthenticator = new Byte[20 + radiusSharedSecret.Length + attributes.Length];
             responseAuthenticator[0] = (Byte)responseCode;
             responseAuthenticator[1] = identifier;
 
             var responselengthbytes = BitConverter.GetBytes(responselength);
-
             responseAuthenticator[2] = responselengthbytes[1];
             responseAuthenticator[3] = responselengthbytes[0];
-            Buffer.BlockCopy(authenticator, 0, responseAuthenticator, 4, 16);
-            Buffer.BlockCopy(radiusSharedSecret, 0, responseAuthenticator, 20, radiusSharedSecret.Length);
 
-            using (var x = MD5CryptoServiceProvider.Create())
+            Buffer.BlockCopy(requestAuthenticator, 0, responseAuthenticator, 4, 16);
+            Buffer.BlockCopy(attributes, 0, responseAuthenticator, 20, attributes.Length);
+            Buffer.BlockCopy(radiusSharedSecret, 0, responseAuthenticator, 20 + attributes.Length, radiusSharedSecret.Length);
+
+            using (var md5 = MD5.Create())
             {
-                return x.ComputeHash(responseAuthenticator);
+                return md5.ComputeHash(responseAuthenticator);
             }
         }
 
