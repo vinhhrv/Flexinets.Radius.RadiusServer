@@ -14,7 +14,7 @@ namespace Flexinets.Radius
     {
         private class PacketHandlerContainer
         {
-            public IPacketHandler packatHandler;
+            public IPacketHandler packetHandler;
             public String secret;
         }
         private readonly ILog _log = LogManager.GetLogger(typeof(RadiusServer));
@@ -49,7 +49,7 @@ namespace Flexinets.Radius
         public void AddPacketHandler(IPAddress remoteEndpoint, String secret, IPacketHandler packethandler)
         {
             _log.Info($"Adding packet handler of type {packethandler.GetType()} for remote IP {remoteEndpoint.ToString()}");
-            _packetHandlers.Add(remoteEndpoint, new PacketHandlerContainer { secret = secret, packatHandler = packethandler });
+            _packetHandlers.Add(remoteEndpoint, new PacketHandlerContainer { secret = secret, packetHandler = packethandler });
         }
 
 
@@ -64,7 +64,7 @@ namespace Flexinets.Radius
             Running = true;
             _server.BeginReceive(new AsyncCallback(ReceiveCallback), null);
 
-            _log.Info("Server started");          
+            _log.Info("Server started");
         }
 
 
@@ -107,9 +107,10 @@ namespace Flexinets.Radius
                     }
 
                     var handler = _packetHandlers[sender.Address];
-                    _log.Debug($"Handling packet for remote ip {handler.packatHandler.GetType()} with {sender.Address}");
+                    _log.Debug($"Handling packet for remote ip {handler.packetHandler.GetType()} with {sender.Address}");
 
-                    HandlePacket(handler.packatHandler, handler.secret, packetbytes, sender);
+                    var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
+                    SendResponsePacket(responsePacket, sender);
                 }
                 catch (Exception ex)
                 {
@@ -120,50 +121,55 @@ namespace Flexinets.Radius
 
 
         /// <summary>
-        ///  Process packets asynchronously
+        /// Parses a packet and gets a response packet from the handler
         /// </summary>
+        /// <param name="packethandler"></param>
+        /// <param name="secret"></param>
         /// <param name="packetbytes"></param>
         /// <param name="sender"></param>
-        private void HandlePacket(IPacketHandler packethandler, String secret, Byte[] packetbytes, IPEndPoint sender)
+        /// <returns></returns>
+        public IRadiusPacket GetResponsePacket(IPacketHandler packethandler, String secret, Byte[] packetbytes, IPEndPoint sender)
         {
-            try
+            var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes(secret));
+            if (packet.Code == PacketCode.AccountingRequest)
             {
-                var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes(secret));
-                if (packet.Code == PacketCode.AccountingRequest)
-                {
-                    _log.Info($"Received {packet.Code} {packet.GetAttribute<AcctStatusTypes>("Acct-Status-Type")} from {sender.Address}:{sender.Port} Id={packet.Identifier}");
-
-                }
-                else
-                {
-                    _log.Info($"Received {packet.Code} from {sender.Address}:{sender.Port} Id={packet.Identifier}");
-                }
-
-                if (_log.IsDebugEnabled)
-                {
-                    DumpPacket(packet);
-                }
-
-                var sw = new Stopwatch();
-                sw.Start();
-                var responsepacket = packethandler.HandlePacket(packet);
-                sw.Stop();
-
-                _log.Debug($"{sender.Address}:{sender.Port} Id={responsepacket.Identifier}, Received {responsepacket.Code} from handler in {sw.ElapsedMilliseconds}ms");
-
-                using (var client = new UdpClient())
-                {
-                    var responseBytes = GetBytes(responsepacket);
-                    client.Send(responseBytes, responseBytes.Length, sender);
-                }
-
-                _log.Info($"{responsepacket.Code} sent to {sender.Address}:{sender.Port} Id={responsepacket.Identifier}");
+                _log.Info($"Received {packet.Code} {packet.GetAttribute<AcctStatusTypes>("Acct-Status-Type")} from {sender.Address}:{sender.Port} Id={packet.Identifier}");
             }
-            catch (Exception ex)
+            else
             {
-                _log.Error("Could not handle packet", ex);
+                _log.Info($"Received {packet.Code} from {sender.Address}:{sender.Port} Id={packet.Identifier}");
             }
+
+            if (_log.IsDebugEnabled)
+            {
+                DumpPacket(packet);
+            }
+
+            var sw = new Stopwatch();
+            sw.Start();
+            var responsepacket = packethandler.HandlePacket(packet);
+            sw.Stop();
+            _log.Debug($"{sender.Address}:{sender.Port} Id={responsepacket.Identifier}, Received {responsepacket.Code} from handler in {sw.ElapsedMilliseconds}ms");
+            return responsepacket;
         }
+
+
+        /// <summary>
+        /// Sends a packet
+        /// </summary>
+        /// <param name="responsepacket"></param>
+        /// <param name="sender"></param>
+        private void SendResponsePacket(IRadiusPacket responsepacket, IPEndPoint sender)
+        {
+            using (var client = new UdpClient())
+            {
+                var responseBytes = GetBytes(responsepacket);
+                client.Send(responseBytes, responseBytes.Length, sender);
+            }
+
+            _log.Info($"{responsepacket.Code} sent to {sender.Address}:{sender.Port} Id={responsepacket.Identifier}");
+        }
+
 
 
         /// <summary>
@@ -190,7 +196,7 @@ namespace Flexinets.Radius
         /// Get the raw packet bytes
         /// </summary>
         /// <returns></returns>
-        private Byte[] GetBytes(IRadiusPacket packet)
+        public Byte[] GetBytes(IRadiusPacket packet)
         {
             var packetbytes = new Byte[20]; // Should be 20 + AVPs...
             packetbytes[0] = (Byte)packet.Code;
@@ -291,7 +297,6 @@ namespace Flexinets.Radius
         /// Creates a response authenticator
         /// Response authenticator = MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
         /// </summary>
-        /// <param name="responseCode">The response code to send. This must much the actual response code sent, otherwise the authenticator will be invalid</param>
         /// <returns>Valid response authenticator for the packet</returns>
         private Byte[] CreateResponseAuthenticator(PacketCode responseCode, Byte[] radiusSharedSecret, Byte identifier, Byte[] requestAuthenticator, Int16 responselength, Byte[] attributes)
         {

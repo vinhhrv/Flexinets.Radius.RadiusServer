@@ -58,6 +58,7 @@
     <Compile Include="Classes\IPacketHandler.cs" />
     <Compile Include="Classes\IRadiusPacket.cs" />
     <Compile Include="Classes\PacketCodes.cs" />
+    <Compile Include="Classes\MockPacketHandler.cs" />
     <Compile Include="Classes\TestPacketHandler.cs" />
     <Compile Include="Classes\VendorSpecificAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
