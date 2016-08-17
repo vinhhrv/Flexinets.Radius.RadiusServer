@@ -12,13 +12,8 @@ namespace Flexinets.Radius
 {
     public sealed class RadiusServer : IDisposable
     {
-        private class PacketHandlerContainer
-        {
-            public IPacketHandler packetHandler;
-            public String secret;
-        }
         private readonly ILog _log = LogManager.GetLogger(typeof(RadiusServer));
-        private readonly UdpClient _server;
+        private readonly IUdpClientWrapper _server;
         private readonly RadiusDictionary _dictionary;
         private readonly Dictionary<IPAddress, PacketHandlerContainer> _packetHandlers = new Dictionary<IPAddress, PacketHandlerContainer>();
 
@@ -36,7 +31,7 @@ namespace Flexinets.Radius
         /// <param name="dictionary"></param>
         public RadiusServer(IPEndPoint serverEndpoint, RadiusDictionary dictionary)
         {
-            _server = new UdpClient(serverEndpoint);
+            _server = new UdpClientWrapper(serverEndpoint);
             _dictionary = dictionary;
         }
 
@@ -45,6 +40,7 @@ namespace Flexinets.Radius
         /// Add packet handler for remote endpoint
         /// </summary>
         /// <param name="remoteEndpoint"></param>
+        /// <param name="secret"></param>
         /// <param name="packethandler"></param>
         public void AddPacketHandler(IPAddress remoteEndpoint, String secret, IPacketHandler packethandler)
         {
@@ -159,21 +155,20 @@ namespace Flexinets.Radius
         /// </summary>
         /// <param name="responsepacket"></param>
         /// <param name="sender"></param>
-        private void SendResponsePacket(IRadiusPacket responsepacket, IPEndPoint sender)
+        private void SendResponsePacket(IRadiusPacket responsepacket, IPEndPoint recipient)
         {
             using (var client = new UdpClient())
             {
                 var responseBytes = GetBytes(responsepacket);
-                client.Send(responseBytes, responseBytes.Length, sender);
+                client.Send(responseBytes, responseBytes.Length, recipient);
             }
 
-            _log.Info($"{responsepacket.Code} sent to {sender.Address}:{sender.Port} Id={responsepacket.Identifier}");
+            _log.Info($"{responsepacket.Code} sent to {recipient.Address}:{recipient.Port} Id={responsepacket.Identifier}");
         }
 
 
-
         /// <summary>
-        /// Dump the packet attributes to the _log
+        /// Dump the packet attributes to the log
         /// </summary>
         /// <param name="packet"></param>
         private void DumpPacket(IRadiusPacket packet)
@@ -297,7 +292,13 @@ namespace Flexinets.Radius
         /// Creates a response authenticator
         /// Response authenticator = MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
         /// </summary>
-        /// <returns>Valid response authenticator for the packet</returns>
+        /// <param name="responseCode"></param>
+        /// <param name="radiusSharedSecret"></param>
+        /// <param name="identifier"></param>
+        /// <param name="requestAuthenticator"></param>
+        /// <param name="responselength"></param>
+        /// <param name="attributes"></param>
+        /// <returns>Response authenticator for the packet</returns>
         private Byte[] CreateResponseAuthenticator(PacketCode responseCode, Byte[] radiusSharedSecret, Byte identifier, Byte[] requestAuthenticator, Int16 responselength, Byte[] attributes)
         {
             var responseAuthenticator = new Byte[20 + radiusSharedSecret.Length + attributes.Length];

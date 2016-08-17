@@ -53,6 +53,8 @@
   <ItemGroup>
     <Compile Include="Classes\AcctStatusTypes.cs" />
     <Compile Include="Classes\DictionaryVendorAttribute.cs" />
+    <Compile Include="Classes\IUdpClientWrapper.cs" />
+    <Compile Include="Classes\PacketHandlerContainer.cs" />
     <Compile Include="Classes\RadiusDictionary.cs" />
     <Compile Include="Classes\DictionaryAttribute.cs" />
     <Compile Include="Classes\IPacketHandler.cs" />
@@ -60,11 +62,14 @@
     <Compile Include="Classes\PacketCodes.cs" />
     <Compile Include="Classes\MockPacketHandler.cs" />
     <Compile Include="Classes\TestPacketHandler.cs" />
+    <Compile Include="Classes\UdpClientMock.cs" />
+    <Compile Include="Classes\UdpClientWrapper.cs" />
     <Compile Include="Classes\VendorSpecificAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Classes\RadiusPacket.cs" />
     <Compile Include="Classes\RadiusPassword.cs" />
     <Compile Include="Classes\RadiusServer.cs" />
+    <Compile Include="Classes\Utils.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
