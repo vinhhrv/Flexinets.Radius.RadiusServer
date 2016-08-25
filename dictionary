@@ -127,6 +127,7 @@ ATTRIBUTE    	Acct-Interim-Interval		85	integer
 ATTRIBUTE   	Ascend-Owner-IP-Addr    	86      ipaddr
 ATTRIBUTE       NAS-Port-Id			87      string
 ATTRIBUTE       Framed-Pool			88      string
+ATTRIBUTE		CUI					89		string
 ATTRIBUTE       Tunnel-Client-Auth-ID           90      tagged-string
 ATTRIBUTE       Tunnel-Server-Auth-ID           91      tagged-string
 
