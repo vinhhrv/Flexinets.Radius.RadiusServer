@@ -108,6 +108,10 @@ namespace Flexinets.Radius
                     var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
                     SendResponsePacket(responsePacket, sender);
                 }
+                catch (ArgumentException ex)
+                {
+                    _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
+                }
                 catch (Exception ex)
                 {
                     _log.Error("Failed to receive packet", ex);
