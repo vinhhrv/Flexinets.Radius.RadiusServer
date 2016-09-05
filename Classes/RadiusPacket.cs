@@ -49,10 +49,12 @@ namespace Flexinets.Radius
         {
             // Check the packet length and make sure its valid
             Array.Reverse(packetBytes, 2, 2);
-            if (packetBytes.Length != BitConverter.ToUInt16(packetBytes, 2))
+            var packetLength = BitConverter.ToUInt16(packetBytes, 2);
+            if (packetBytes.Length != packetLength)
             {
-                _log.ErrorFormat("Packet length does not match, expected: {0}, actual: {1}", BitConverter.ToUInt16(packetBytes, 2), packetBytes.Length);
-                throw new Exception(String.Format("Packet length does not match, expected: {0}, actual: {1}", BitConverter.ToUInt16(packetBytes, 2), packetBytes.Length));
+                var message = $"Packet length does not match, expected: {packetLength}, actual: {packetBytes.Length}";
+                _log.ErrorFormat(message);
+                throw new InvalidOperationException(message);
             }
 
             var radiusPacket = new RadiusPacket
