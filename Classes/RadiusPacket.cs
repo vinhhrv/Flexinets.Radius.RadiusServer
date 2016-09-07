@@ -122,6 +122,10 @@ namespace Flexinets.Radius
                         }
                     }
                 }
+                catch (KeyNotFoundException)
+                {
+                    _log.Warn($"Attribute {typecode} not found in dictionary");
+                }
                 catch (Exception ex)
                 {
                     _log.Error($"Something went wrong parsing attribute {typecode}", ex);
