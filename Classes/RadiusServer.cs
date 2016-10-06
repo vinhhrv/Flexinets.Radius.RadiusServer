@@ -112,6 +112,10 @@ namespace Flexinets.Radius
                 {
                     _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
                 }
+                catch (OverflowException ex)
+                {
+                    _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
+                }
                 catch (Exception ex)
                 {
                     _log.Error("Failed to receive packet", ex);
