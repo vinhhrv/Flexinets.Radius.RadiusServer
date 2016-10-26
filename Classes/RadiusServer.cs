@@ -118,7 +118,15 @@ namespace Flexinets.Radius
                 }
                 catch (Exception ex)
                 {
-                    _log.Error("Failed to receive packet", ex);
+                    try
+                    {
+                        _log.Error($"Failed to receive packet from {sender.Address}:{sender.Port}", ex);
+                    }
+                    catch (Exception iex)
+                    {
+                        _log.Warn("Couldnt get sender?!", iex);
+                        _log.Error("Failed to receive packet", ex);
+                    }                    
                 }
             }
         }
