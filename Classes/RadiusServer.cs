@@ -111,16 +111,19 @@ namespace Flexinets.Radius
                 catch (ArgumentException ex)
                 {
                     _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
+                    DumpPacketBytes(packetbytes);                    
                 }
                 catch (OverflowException ex)
                 {
                     _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
+                    DumpPacketBytes(packetbytes);
                 }
                 catch (Exception ex)
                 {
                     try
                     {
                         _log.Error($"Failed to receive packet from {sender.Address}:{sender.Port}", ex);
+                        DumpPacketBytes(packetbytes);
                     }
                     catch (Exception iex)
                     {
@@ -129,6 +132,23 @@ namespace Flexinets.Radius
                     }                    
                 }
             }
+        }
+
+
+        /// <summary>
+        /// Log packet bytes for debugging
+        /// </summary>
+        /// <param name="packetbytes"></param>
+        private void DumpPacketBytes(byte[] packetbytes)
+        {
+            try
+            {
+                _log.Debug(ByteArrayToString(packetbytes));
+            }
+            catch (Exception)
+            {
+                _log.Warn("duh");
+            }            
         }
 
 
@@ -345,6 +365,17 @@ namespace Flexinets.Radius
             {
                 _server.Dispose();
             }
+        }
+
+
+        public static String ByteArrayToString(Byte[] bytes)
+        {
+            var hex = new StringBuilder(bytes.Length * 2);
+            foreach (byte b in bytes)
+            {
+                hex.AppendFormat($"{b:x2}");
+            }
+            return hex.ToString();
         }
     }
 }
