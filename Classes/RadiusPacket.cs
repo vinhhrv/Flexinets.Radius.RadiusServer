@@ -74,6 +74,11 @@ namespace Flexinets.Radius
             {
                 var typecode = packetBytes[i];
                 var length = packetBytes[i + 1];
+
+                if (i + length > packetLength)
+                {
+                    throw new ArgumentOutOfRangeException("Go home roamserver, youre drunk");
+                }
                 var contentBytes = new Byte[length - 2];
                 Buffer.BlockCopy(packetBytes, i + 2, contentBytes, 0, length - 2);
 
