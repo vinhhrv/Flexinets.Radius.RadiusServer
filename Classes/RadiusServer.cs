@@ -103,7 +103,7 @@ namespace Flexinets.Radius
                     }
 
                     var handler = _packetHandlers[sender.Address];
-                    _log.Debug($"Handling packet for remote ip {handler.packetHandler.GetType()} with {sender.Address}");
+                    _log.Debug($"Handling packet for remote ip {sender.Address} with {handler.packetHandler.GetType()}");
 
                     var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
                     SendResponsePacket(responsePacket, sender);
