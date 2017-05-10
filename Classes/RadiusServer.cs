@@ -99,6 +99,8 @@ namespace Flexinets.Radius
                     if (!_packetHandlers.ContainsKey(sender.Address))
                     {
                         _log.Error($"No packet handler found for remote ip {sender.Address}");
+                        var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes("wut"));
+                        DumpPacket(packet);
                         return;
                     }
 
