@@ -104,9 +104,7 @@ namespace Flexinets.Radius
                         return;
                     }
 
-                    var handler = _packetHandlers[sender.Address];
-                    _log.Debug($"Handling packet for remote ip {sender.Address} with {handler.packetHandler.GetType()}");
-
+                    var handler = _packetHandlers[sender.Address];                  
                     var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
                     SendResponsePacket(responsePacket, sender);
                 }
@@ -186,7 +184,9 @@ namespace Flexinets.Radius
                 responsePacket.AddAttribute("Reply-Message", "RADIUS Server up");
                 return responsePacket;
             }
-                   
+
+            _log.Debug($"Handling packet for remote ip {sender.Address} with {packethandler.GetType()}");
+
             var sw = new Stopwatch();
             sw.Start();
             var responsepacket = packethandler.HandlePacket(packet);
