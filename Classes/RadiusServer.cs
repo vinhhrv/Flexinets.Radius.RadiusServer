@@ -179,6 +179,14 @@ namespace Flexinets.Radius
                 DumpPacket(packet);
             }
 
+            // Handle status server requests in server outside packet handler
+            if (packet.Code == PacketCode.StatusServer)
+            {
+                var responsePacket = packet.CreateResponsePacket(PacketCode.AccessAccept);
+                responsePacket.AddAttribute("Reply-Message", "RADIUS Server up");
+                return responsePacket;
+            }
+                   
             var sw = new Stopwatch();
             sw.Start();
             var responsepacket = packethandler.HandlePacket(packet);
