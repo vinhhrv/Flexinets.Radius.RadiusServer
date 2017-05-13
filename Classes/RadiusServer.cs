@@ -219,17 +219,19 @@ namespace Flexinets.Radius
         /// <param name="packet"></param>
         private void DumpPacket(IRadiusPacket packet)
         {
+            var sb = new StringBuilder();
             foreach (var attribute in packet.Attributes)
             {
                 if (attribute.Key == "User-Password")
                 {
-                    _log.Debug($"{attribute.Key} length : {attribute.Value.First().ToString().Length}");
+                    sb.AppendLine($"{attribute.Key} length : {attribute.Value.First().ToString().Length}");
                 }
                 else
                 {
-                    attribute.Value.ForEach(o => _log.Debug($"{attribute.Key} : {o} [{o.GetType()}]"));
+                    attribute.Value.ForEach(o => sb.AppendLine($"{attribute.Key} : {o} [{o.GetType()}]"));
                 }
             }
+            _log.Debug(sb.ToString());
         }
 
 
