@@ -95,23 +95,23 @@ namespace Flexinets.Radius
                 try
                 {
                     _log.Debug($"Received packet from {sender.Address}:{sender.Port}");
-
-                    if (!_packetHandlers.ContainsKey(sender.Address))
+                    if (_packetHandlers.TryGetValue(sender.Address, out var handler))
+                    {
+                        var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
+                        SendResponsePacket(responsePacket, sender);
+                    }
+                    else
                     {
                         _log.Error($"No packet handler found for remote ip {sender.Address}");
                         var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes("wut"));
                         DumpPacket(packet);
-                        return;
                     }
 
-                    var handler = _packetHandlers[sender.Address];                  
-                    var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
-                    SendResponsePacket(responsePacket, sender);
                 }
                 catch (ArgumentException ex)
                 {
                     _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
-                    DumpPacketBytes(packetbytes);                    
+                    DumpPacketBytes(packetbytes);
                 }
                 catch (OverflowException ex)
                 {
@@ -129,7 +129,7 @@ namespace Flexinets.Radius
                     {
                         _log.Warn("Couldnt get sender?!", iex);
                         _log.Error("Failed to receive packet", ex);
-                    }                    
+                    }
                 }
             }
         }
@@ -148,7 +148,7 @@ namespace Flexinets.Radius
             catch (Exception)
             {
                 _log.Warn("duh");
-            }            
+            }
         }
 
 
@@ -220,6 +220,7 @@ namespace Flexinets.Radius
         private void DumpPacket(IRadiusPacket packet)
         {
             var sb = new StringBuilder();
+            sb.AppendLine($"Packet dump for {packet.Identifier}:");
             foreach (var attribute in packet.Attributes)
             {
                 if (attribute.Key == "User-Password")
