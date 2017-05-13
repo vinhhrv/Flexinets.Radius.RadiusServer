@@ -54,13 +54,20 @@ namespace Flexinets.Radius
         /// </summary>
         public void Start()
         {
-            var endpoint = (IPEndPoint)_server.Client.LocalEndPoint;
-            _log.InfoFormat("Starting Radius server on {0}:{1}", endpoint.Address, endpoint.Port);
+            if (!Running)
+            {
+                var endpoint = (IPEndPoint)_server.Client.LocalEndPoint;
+                _log.Info($"Starting Radius server on {endpoint.Address}:{endpoint.Port}");
 
-            Running = true;
-            _server.BeginReceive(new AsyncCallback(ReceiveCallback), null);
+                Running = true;
+                _server.BeginReceive(new AsyncCallback(ReceiveCallback), null);
 
-            _log.Info("Server started");
+                _log.Info("Server started");
+            }
+            else
+            {
+                _log.Warn("Server already started");
+            }
         }
 
 
@@ -69,12 +76,19 @@ namespace Flexinets.Radius
         /// </summary>
         public void Stop()
         {
-            _log.Info("Stopping server");
+            if (Running)
+            {
+                _log.Info("Stopping server");
 
-            Running = false;
-            _server.Close();
+                Running = false;
+                _server.Close();
 
-            _log.Info("Stopped");
+                _log.Info("Stopped");
+            }
+            else
+            {
+                _log.Warn("Server already stopped");
+            }
         }
 
 
