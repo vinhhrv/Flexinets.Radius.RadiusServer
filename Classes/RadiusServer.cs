@@ -12,7 +12,7 @@ namespace Flexinets.Radius
 {
     public sealed class RadiusServer : IDisposable
     {
-        private readonly ILog _log = LogManager.GetLogger(typeof(RadiusServer));
+        private static readonly ILog _log = LogManager.GetLogger(typeof(RadiusServer));
         private readonly IUdpClientWrapper _server;
         private readonly RadiusDictionary _dictionary;
         private readonly Dictionary<IPAddress, PacketHandlerContainer> _packetHandlers = new Dictionary<IPAddress, PacketHandlerContainer>();
@@ -112,7 +112,7 @@ namespace Flexinets.Radius
                     if (_packetHandlers.TryGetValue(sender.Address, out var handler))
                     {
                         var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
-                        SendResponsePacket(responsePacket, sender);
+                        SendResponsePacket(responsePacket, sender, _dictionary);
                     }
                     else
                     {
@@ -153,7 +153,7 @@ namespace Flexinets.Radius
         /// Log packet bytes for debugging
         /// </summary>
         /// <param name="packetbytes"></param>
-        private void DumpPacketBytes(byte[] packetbytes)
+        private static void DumpPacketBytes(Byte[] packetbytes)
         {
             try
             {
@@ -215,11 +215,11 @@ namespace Flexinets.Radius
         /// </summary>
         /// <param name="responsepacket"></param>
         /// <param name="sender"></param>
-        private void SendResponsePacket(IRadiusPacket responsepacket, IPEndPoint recipient)
+        private static void SendResponsePacket(IRadiusPacket responsepacket, IPEndPoint recipient, RadiusDictionary dictionary)
         {
             using (var client = new UdpClient())
             {
-                var responseBytes = GetBytes(responsepacket);
+                var responseBytes = GetBytes(responsepacket, dictionary);
                 client.Send(responseBytes, responseBytes.Length, recipient);
             }
 
@@ -231,7 +231,7 @@ namespace Flexinets.Radius
         /// Dump the packet attributes to the log
         /// </summary>
         /// <param name="packet"></param>
-        private void DumpPacket(IRadiusPacket packet)
+        private static void DumpPacket(IRadiusPacket packet)
         {
             var sb = new StringBuilder();
             sb.AppendLine($"Packet dump for {packet.Identifier}:");
@@ -254,7 +254,7 @@ namespace Flexinets.Radius
         /// Get the raw packet bytes
         /// </summary>
         /// <returns></returns>
-        public Byte[] GetBytes(IRadiusPacket packet)
+        public static Byte[] GetBytes(IRadiusPacket packet, RadiusDictionary dictionary)
         {
             var packetbytes = new Byte[20]; // Should be 20 + AVPs...
             packetbytes[0] = (Byte)packet.Code;
@@ -290,8 +290,8 @@ namespace Flexinets.Radius
 
 
                     // Figure out what kind of attribute this is
-                    var attributeType = _dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
-                    if (_dictionary.Attributes.ContainsValue(attributeType.Value))
+                    var attributeType = dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
+                    if (dictionary.Attributes.ContainsValue(attributeType.Value))
                     {
                         var attributeLength = (Byte)(2 + contentBytes.Length);
                         var attributeBytes = new Byte[attributeLength];
@@ -306,7 +306,7 @@ namespace Flexinets.Radius
                     else
                     {
                         // Maybe this is a vendor attribute?
-                        var vendorAttributeType = _dictionary.VendorAttributes.SingleOrDefault(o => o.Name == attribute.Key);
+                        var vendorAttributeType = dictionary.VendorAttributes.SingleOrDefault(o => o.Name == attribute.Key);
                         if (vendorAttributeType != null)
                         {
                             var attributeLength = (Byte)(8 + contentBytes.Length);  // minimum length for a VSA is 8 + content
@@ -362,7 +362,7 @@ namespace Flexinets.Radius
         /// <param name="responselength"></param>
         /// <param name="attributes"></param>
         /// <returns>Response authenticator for the packet</returns>
-        private Byte[] CreateResponseAuthenticator(PacketCode responseCode, Byte[] radiusSharedSecret, Byte identifier, Byte[] requestAuthenticator, Int16 responselength, Byte[] attributes)
+        private static Byte[] CreateResponseAuthenticator(PacketCode responseCode, Byte[] radiusSharedSecret, Byte identifier, Byte[] requestAuthenticator, Int16 responselength, Byte[] attributes)
         {
             var responseAuthenticator = new Byte[20 + radiusSharedSecret.Length + attributes.Length];
             responseAuthenticator[0] = (Byte)responseCode;
@@ -395,6 +395,12 @@ namespace Flexinets.Radius
         }
 
 
+        /// <summary>
+        /// Convert byte array to hex string representation.
+        /// Used for debugging, testing and packet dumps
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <returns></returns>
         public static String ByteArrayToString(Byte[] bytes)
         {
             var hex = new StringBuilder(bytes.Length * 2);
