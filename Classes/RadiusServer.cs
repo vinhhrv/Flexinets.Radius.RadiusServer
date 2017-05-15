@@ -262,46 +262,18 @@ namespace Flexinets.Radius
 
             foreach (var attribute in packet.Attributes)
             {
-                // todo add logic to check attribute type matches actual type in dictionary?
+                // todo add logic to check attribute object type matches type in dictionary?
                 foreach (var value in attribute.Value)
                 {
-                    var contentBytes = new Byte[0];
-                    if (value.GetType() == typeof(String))
-                    {
-                        contentBytes = Encoding.Default.GetBytes((String)value);
-                    }
-                    else if (value.GetType() == typeof(UInt32))
-                    {
-                        contentBytes = BitConverter.GetBytes((UInt32)value);
-                        Array.Reverse(contentBytes);
-                    }
-                    else if (value.GetType() == typeof(Byte[]))
-                    {
-                        contentBytes = (Byte[])value;
-                    }
-                    else if (value.GetType() == typeof(IPAddress))
-                    {
-                        contentBytes = ((IPAddress)value).GetAddressBytes();
-                    }
-                    else
-                    {
-                        throw new NotImplementedException();
-                    }
-
+                    var contentBytes = GetAttributeValueBytes(value);
+                    var headerBytes = new Byte[0];
 
                     // Figure out what kind of attribute this is
                     var attributeType = dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
                     if (dictionary.Attributes.ContainsValue(attributeType.Value))
                     {
-                        var attributeLength = (Byte)(2 + contentBytes.Length);
-                        var attributeBytes = new Byte[attributeLength];
-                        attributeBytes[0] = attributeType.Value.Value;
-                        attributeBytes[1] = attributeLength;
-                        Buffer.BlockCopy(contentBytes, 0, attributeBytes, 2, contentBytes.Length);
-
-                        // Add to packet
-                        Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
-                        Buffer.BlockCopy(attributeBytes, 0, packetbytes, packetbytes.Length - attributeBytes.Length, attributeBytes.Length);
+                        headerBytes = new Byte[2];
+                        headerBytes[0] = attributeType.Value.Value;
                     }
                     else
                     {
@@ -309,42 +281,39 @@ namespace Flexinets.Radius
                         var vendorAttributeType = dictionary.VendorAttributes.SingleOrDefault(o => o.Name == attribute.Key);
                         if (vendorAttributeType != null)
                         {
-                            var attributeLength = (Byte)(8 + contentBytes.Length);  // minimum length for a VSA is 8 + content
-                            var attributeBytes = new Byte[attributeLength];
-                            attributeBytes[0] = 26; // VSA type
-                            attributeBytes[1] = attributeLength;    // total length
+                            headerBytes = new Byte[8];
+                            headerBytes[0] = 26; // VSA type
 
                             var vendorId = BitConverter.GetBytes(vendorAttributeType.VendorId);
                             Array.Reverse(vendorId);
-                            Buffer.BlockCopy(vendorId, 0, attributeBytes, 2, 4);
-                            attributeBytes[6] = (Byte)vendorAttributeType.Code; // todo, should be byte, some use more? wtf?
-                            attributeBytes[7] = (Byte)(2 + contentBytes.Length);  // length of the vsa part
-                            Buffer.BlockCopy(contentBytes, 0, attributeBytes, 8, contentBytes.Length);
-
-                            // Add to packet
-                            Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
-                            Buffer.BlockCopy(attributeBytes, 0, packetbytes, packetbytes.Length - attributeBytes.Length, attributeBytes.Length);
+                            Buffer.BlockCopy(vendorId, 0, headerBytes, 2, 4);
+                            headerBytes[6] = (Byte)vendorAttributeType.Code;
+                            headerBytes[7] = (Byte)(2 + contentBytes.Length);  // length of the vsa part
                         }
                         else
                         {
                             _log.Debug($"Ignoring unknown attribute {attribute.Key}");
                         }
                     }
+
+                    var attributeBytes = new Byte[headerBytes.Length + contentBytes.Length];
+                    Buffer.BlockCopy(headerBytes, 0, attributeBytes, 0, headerBytes.Length);
+                    Buffer.BlockCopy(contentBytes, 0, attributeBytes, headerBytes.Length, contentBytes.Length);
+                    attributeBytes[1] = (Byte)attributeBytes.Length;
+
+                    // Add attribute to packet
+                    Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
+                    Buffer.BlockCopy(attributeBytes, 0, packetbytes, packetbytes.Length - attributeBytes.Length, attributeBytes.Length);
                 }
             }
-
 
             // Note the order of the bytes...
             var responselengthbytes = BitConverter.GetBytes(packetbytes.Length);
             packetbytes[2] = responselengthbytes[1];
             packetbytes[3] = responselengthbytes[0];
 
-            // todo hack...
-            var attributes = new Byte[packetbytes.Length - 20];
-            Buffer.BlockCopy(packetbytes, 20, attributes, 0, attributes.Length);
-
-            // Done last... includes packet length
-            var responseAuthenticator = CreateResponseAuthenticator(packet.Code, packet.SharedSecret, packet.Identifier, packet.Authenticator, (Int16)packetbytes.Length, attributes);
+            // Done last... includes total packet length
+            var responseAuthenticator = CreateResponseAuthenticator(packet.SharedSecret, packet.Authenticator, packetbytes);
             Buffer.BlockCopy(responseAuthenticator, 0, packetbytes, 4, 16);
 
             return packetbytes;
@@ -352,29 +321,54 @@ namespace Flexinets.Radius
 
 
         /// <summary>
+        /// Gets the byte awway representation of an attribute object
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        private static Byte[] GetAttributeValueBytes(Object value)
+        {
+            byte[] contentBytes;
+            if (value.GetType() == typeof(String))
+            {
+                contentBytes = Encoding.Default.GetBytes((String)value);
+            }
+            else if (value.GetType() == typeof(UInt32))
+            {
+                contentBytes = BitConverter.GetBytes((UInt32)value);
+                Array.Reverse(contentBytes);
+            }
+            else if (value.GetType() == typeof(Byte[]))
+            {
+                contentBytes = (Byte[])value;
+            }
+            else if (value.GetType() == typeof(IPAddress))
+            {
+                contentBytes = ((IPAddress)value).GetAddressBytes();
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+
+            return contentBytes;
+        }
+
+
+        /// <summary>
         /// Creates a response authenticator
         /// Response authenticator = MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
+        /// Actually this means it is the response packet with the request authenticator and secret...
         /// </summary>
-        /// <param name="responseCode"></param>
         /// <param name="radiusSharedSecret"></param>
-        /// <param name="identifier"></param>
         /// <param name="requestAuthenticator"></param>
-        /// <param name="responselength"></param>
-        /// <param name="attributes"></param>
+        /// <param name="packetBytes"></param>
         /// <returns>Response authenticator for the packet</returns>
-        private static Byte[] CreateResponseAuthenticator(PacketCode responseCode, Byte[] radiusSharedSecret, Byte identifier, Byte[] requestAuthenticator, Int16 responselength, Byte[] attributes)
+        private static Byte[] CreateResponseAuthenticator(Byte[] radiusSharedSecret, Byte[] requestAuthenticator, Byte[] packetBytes)
         {
-            var responseAuthenticator = new Byte[20 + radiusSharedSecret.Length + attributes.Length];
-            responseAuthenticator[0] = (Byte)responseCode;
-            responseAuthenticator[1] = identifier;
-
-            var responselengthbytes = BitConverter.GetBytes(responselength);
-            responseAuthenticator[2] = responselengthbytes[1];
-            responseAuthenticator[3] = responselengthbytes[0];
-
+            var responseAuthenticator = new Byte[packetBytes.Length + radiusSharedSecret.Length];            
+            Buffer.BlockCopy(packetBytes, 0, responseAuthenticator, 0, packetBytes.Length);
             Buffer.BlockCopy(requestAuthenticator, 0, responseAuthenticator, 4, 16);
-            Buffer.BlockCopy(attributes, 0, responseAuthenticator, 20, attributes.Length);
-            Buffer.BlockCopy(radiusSharedSecret, 0, responseAuthenticator, 20 + attributes.Length, radiusSharedSecret.Length);
+            Buffer.BlockCopy(radiusSharedSecret, 0, responseAuthenticator, packetBytes.Length, radiusSharedSecret.Length);
 
             using (var md5 = MD5.Create())
             {
