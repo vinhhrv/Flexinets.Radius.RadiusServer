@@ -195,7 +195,7 @@ namespace Flexinets.Radius
             if (packet.Code == PacketCode.StatusServer)
             {
                 var responsePacket = packet.CreateResponsePacket(PacketCode.AccessAccept);
-                responsePacket.AddAttribute("Reply-Message", "RADIUS Server up");
+                //responsePacket.AddAttribute("Reply-Message", "RADIUS Server up");
                 return responsePacket;
             }
 
