@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Text;
 
 namespace Flexinets.Radius
 {
@@ -22,6 +23,14 @@ namespace Flexinets.Radius
                 }
             }
 
+            var sb = new StringBuilder();
+            sb.AppendLine($"Packet dump for {packet.Identifier}:");
+            foreach (var attribute in packet.Attributes)
+            {
+                attribute.Value.ForEach(o => sb.AppendLine($"{attribute.Key} : {o} [{o.GetType()}]"));
+            }
+            Console.WriteLine(sb.ToString());
+            //Console.WriteLine(packet.GetAttribute<String>("3GPP-GGSN-MCC-MNC"));
             throw new InvalidOperationException("Couldnt handle request?!");
         }
 
