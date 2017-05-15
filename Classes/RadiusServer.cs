@@ -176,37 +176,41 @@ namespace Flexinets.Radius
         /// <returns></returns>
         public IRadiusPacket GetResponsePacket(IPacketHandler packethandler, String secret, Byte[] packetbytes, IPEndPoint sender)
         {
-            var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes(secret));
-            if (packet.Code == PacketCode.AccountingRequest)
+            var requestPacket = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes(secret));
+            if (requestPacket.Code == PacketCode.AccountingRequest)
             {
-                _log.Info($"Received {packet.Code} {packet.GetAttribute<AcctStatusTypes>("Acct-Status-Type")} from {sender.Address}:{sender.Port} Id={packet.Identifier}");
+                _log.Info($"Received {requestPacket.Code} {requestPacket.GetAttribute<AcctStatusTypes>("Acct-Status-Type")} from {sender.Address}:{sender.Port} Id={requestPacket.Identifier}");
             }
             else
             {
-                _log.Info($"Received {packet.Code} from {sender.Address}:{sender.Port} Id={packet.Identifier}");
+                _log.Info($"Received {requestPacket.Code} from {sender.Address}:{sender.Port} Id={requestPacket.Identifier}");
             }
 
             if (_log.IsDebugEnabled)
             {
-                DumpPacket(packet);
+                DumpPacket(requestPacket);
             }
 
             // Handle status server requests in server outside packet handler
-            if (packet.Code == PacketCode.StatusServer)
+            if (requestPacket.Code == PacketCode.StatusServer)
             {
-                var responsePacket = packet.CreateResponsePacket(PacketCode.AccessAccept);
-                //responsePacket.AddAttribute("Reply-Message", "RADIUS Server up");
-                return responsePacket;
+                return requestPacket.CreateResponsePacket(PacketCode.AccessAccept);
             }
 
             _log.Debug($"Handling packet for remote ip {sender.Address} with {packethandler.GetType()}");
 
             var sw = new Stopwatch();
             sw.Start();
-            var responsepacket = packethandler.HandlePacket(packet);
+            var responsePacket = packethandler.HandlePacket(requestPacket);
             sw.Stop();
-            _log.Debug($"{sender.Address}:{sender.Port} Id={responsepacket.Identifier}, Received {responsepacket.Code} from handler in {sw.ElapsedMilliseconds}ms");
-            return responsepacket;
+            _log.Debug($"{sender.Address}:{sender.Port} Id={responsePacket.Identifier}, Received {responsePacket.Code} from handler in {sw.ElapsedMilliseconds}ms");
+
+            if (requestPacket.Attributes.ContainsKey("Proxy-State"))
+            {
+                responsePacket.Attributes.Add("Proxy-State", requestPacket.Attributes.SingleOrDefault(o => o.Key == "Proxy-State").Value);
+            }
+
+            return responsePacket;
         }
 
 
@@ -365,7 +369,7 @@ namespace Flexinets.Radius
         /// <returns>Response authenticator for the packet</returns>
         private static Byte[] CreateResponseAuthenticator(Byte[] radiusSharedSecret, Byte[] requestAuthenticator, Byte[] packetBytes)
         {
-            var responseAuthenticator = new Byte[packetBytes.Length + radiusSharedSecret.Length];            
+            var responseAuthenticator = new Byte[packetBytes.Length + radiusSharedSecret.Length];
             Buffer.BlockCopy(packetBytes, 0, responseAuthenticator, 0, packetBytes.Length);
             Buffer.BlockCopy(requestAuthenticator, 0, responseAuthenticator, 4, 16);
             Buffer.BlockCopy(radiusSharedSecret, 0, responseAuthenticator, packetBytes.Length, radiusSharedSecret.Length);
