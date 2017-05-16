@@ -11,18 +11,18 @@ namespace Flexinets.Radius
 
             if (packet.Code == PacketCode.AccountingRequest)
             {
-                var acctStatusType = packet.GetAttribute<AcctStatusTypes>("Acct-Status-Type");
-                if (acctStatusType == AcctStatusTypes.Start)
+                var acctStatusType = packet.GetAttribute<AcctStatusType>("Acct-Status-Type");
+                if (acctStatusType == AcctStatusType.Start)
                 {
                     return packet.CreateResponsePacket(PacketCode.AccountingResponse);
                 }
 
-                if (acctStatusType == AcctStatusTypes.Stop)
+                if (acctStatusType == AcctStatusType.Stop)
                 {
                     return packet.CreateResponsePacket(PacketCode.AccountingResponse);
                 }
 
-                if (acctStatusType == AcctStatusTypes.InterimUpdate)
+                if (acctStatusType == AcctStatusType.InterimUpdate)
                 {
                     return packet.CreateResponsePacket(PacketCode.AccountingResponse);
                 }

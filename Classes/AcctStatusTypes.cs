@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Flexinets.Radius
+﻿namespace Flexinets.Radius
 {
-    public enum AcctStatusTypes : uint
+    public enum AcctStatusType : uint
     {
         Start = 1,
         Stop = 2,

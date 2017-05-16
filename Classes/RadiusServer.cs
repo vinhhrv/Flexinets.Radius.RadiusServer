@@ -179,7 +179,7 @@ namespace Flexinets.Radius
             var requestPacket = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes(secret));
             if (requestPacket.Code == PacketCode.AccountingRequest)
             {
-                _log.Info($"Received {requestPacket.Code} {requestPacket.GetAttribute<AcctStatusTypes>("Acct-Status-Type")} from {sender.Address}:{sender.Port} Id={requestPacket.Identifier}");
+                _log.Info($"Received {requestPacket.Code} {requestPacket.GetAttribute<AcctStatusType>("Acct-Status-Type")} from {sender.Address}:{sender.Port} Id={requestPacket.Identifier}");
             }
             else
             {
