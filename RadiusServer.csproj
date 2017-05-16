@@ -142,6 +142,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Classes\AcctStatusTypes.cs" />
+    <Compile Include="Classes\AcctTerminateCause.cs" />
     <Compile Include="Classes\DictionaryVendorAttribute.cs" />
     <Compile Include="Classes\IUdpClientWrapper.cs" />
     <Compile Include="Classes\PacketHandlerContainer.cs" />
@@ -149,7 +150,7 @@
     <Compile Include="Classes\DictionaryAttribute.cs" />
     <Compile Include="Classes\IPacketHandler.cs" />
     <Compile Include="Classes\IRadiusPacket.cs" />
-    <Compile Include="Classes\PacketCodes.cs" />
+    <Compile Include="Classes\PacketCode.cs" />
     <Compile Include="Classes\MockPacketHandler.cs" />
     <Compile Include="Classes\TestPacketHandler.cs" />
     <Compile Include="Classes\UdpClientMock.cs" />

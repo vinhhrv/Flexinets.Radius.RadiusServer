@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -219,14 +218,10 @@ namespace Flexinets.Radius
         /// </summary>
         /// <param name="responsepacket"></param>
         /// <param name="sender"></param>
-        private static void SendResponsePacket(IRadiusPacket responsepacket, IPEndPoint recipient, RadiusDictionary dictionary)
+        private void SendResponsePacket(IRadiusPacket responsepacket, IPEndPoint recipient, RadiusDictionary dictionary)
         {
-            using (var client = new UdpClient())
-            {
-                var responseBytes = GetBytes(responsepacket, dictionary);
-                client.Send(responseBytes, responseBytes.Length, recipient);
-            }
-
+            var responseBytes = GetBytes(responsepacket, dictionary);
+            _server.Send(responseBytes, responseBytes.Length, recipient);   // todo thread safety... although this implementation will be implicitly thread safeish...
             _log.Info($"{responsepacket.Code} sent to {recipient.Address}:{recipient.Port} Id={responsepacket.Identifier}");
         }
 
