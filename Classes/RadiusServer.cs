@@ -351,23 +351,6 @@ namespace Flexinets.Radius
 
 
         /// <summary>
-        /// Convert byte array to hex string representation.
-        /// Used for debugging, testing and packet dumps
-        /// </summary>
-        /// <param name="bytes"></param>
-        /// <returns></returns>
-        public static String ByteArrayToString(Byte[] bytes)
-        {
-            var hex = new StringBuilder(bytes.Length * 2);
-            foreach (byte b in bytes)
-            {
-                hex.AppendFormat($"{b:x2}");
-            }
-            return hex.ToString();
-        }
-
-
-        /// <summary>
         /// Log packet bytes for debugging
         /// </summary>
         /// <param name="packetbytes"></param>
@@ -375,7 +358,7 @@ namespace Flexinets.Radius
         {
             try
             {
-                _log.Debug(ByteArrayToString(packetbytes));
+                _log.Debug(Utils.ByteArrayToString(packetbytes));
             }
             catch (Exception)
             {

@@ -1,28 +1,25 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace Flexinets.Radius.Test
+namespace Flexinets.Radius
 {
     public static class Utils
     {
         public static Byte[] StringToByteArray(String hex)
         {
-            int NumberChars = hex.Length;
-            byte[] bytes = new byte[NumberChars / 2];
-            for (int i = 0; i < NumberChars; i += 2)
+            Int32 NumberChars = hex.Length;
+            Byte[] bytes = new Byte[NumberChars / 2];
+            for (var i = 0; i < NumberChars; i += 2)
             {
                 bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
             }
             return bytes;
         }
 
-        public static String ByteArrayToString(byte[] bytes)
+        public static String ByteArrayToString(Byte[] bytes)
         {
             var hex = new StringBuilder(bytes.Length * 2);
-            foreach (byte b in bytes)
+            foreach (var b in bytes)
             {
                 hex.AppendFormat("{0:x2}", b);
             }
