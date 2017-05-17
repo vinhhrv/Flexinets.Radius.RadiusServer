@@ -35,5 +35,6 @@ namespace Flexinets.Radius
         {
             get;
         }
+        Byte[] GetBytes(RadiusDictionary dictionary);
     }
 }

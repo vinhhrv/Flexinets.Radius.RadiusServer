@@ -228,7 +228,7 @@ namespace Flexinets.Radius
         /// <returns></returns>
         public static Byte[] GetBytes(IRadiusPacket packet, RadiusDictionary dictionary)
         {
-            var packetBytes = RadiusPacket.GetBytes(packet, dictionary);
+            var packetBytes = packet.GetBytes(dictionary);
             var responseAuthenticator = CreateResponseAuthenticator(packet.SharedSecret, packet.Authenticator, packetBytes);
             Buffer.BlockCopy(responseAuthenticator, 0, packetBytes, 4, 16);
             return packetBytes;

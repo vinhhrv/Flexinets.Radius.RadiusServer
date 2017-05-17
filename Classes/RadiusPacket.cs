@@ -286,11 +286,11 @@ namespace Flexinets.Radius
         /// </summary>
         /// <returns></returns>
         public static String CalculateMessageAuthenticator(IRadiusPacket packet, RadiusDictionary dictionary)
-        {
-            var checkPacket = ParseRawPacket(GetBytes(packet, dictionary), dictionary, packet.SharedSecret);    // This is a bit daft, but we dont want side effects do we...
+        {            
+            var checkPacket = ParseRawPacket(packet.GetBytes(dictionary), dictionary, packet.SharedSecret);    // This is a bit daft, but we dont want side effects do we...
             checkPacket.Attributes["Message-Authenticator"][0] = new Byte[16];
 
-            var bytes = GetBytes(checkPacket, dictionary);
+            var bytes = checkPacket.GetBytes(dictionary);
 
             using (var md5 = new HMACMD5(checkPacket.SharedSecret))
             {
@@ -303,13 +303,13 @@ namespace Flexinets.Radius
         /// Get the raw packet bytes
         /// </summary>
         /// <returns></returns>
-        public static Byte[] GetBytes(IRadiusPacket packet, RadiusDictionary dictionary)
+        public Byte[] GetBytes(RadiusDictionary dictionary)
         {
             var packetbytes = new Byte[20]; // Should be 20 + AVPs...
-            packetbytes[0] = (Byte)packet.Code;
-            packetbytes[1] = packet.Identifier;
+            packetbytes[0] = (Byte)Code;
+            packetbytes[1] = Identifier;
 
-            foreach (var attribute in packet.Attributes)
+            foreach (var attribute in Attributes)
             {
                 // todo add logic to check attribute object type matches type in dictionary?
                 foreach (var value in attribute.Value)
@@ -361,7 +361,7 @@ namespace Flexinets.Radius
             packetbytes[2] = responselengthbytes[1];
             packetbytes[3] = responselengthbytes[0];
 
-            Buffer.BlockCopy(packet.Authenticator, 0, packetbytes, 4, 16);
+            Buffer.BlockCopy(Authenticator, 0, packetbytes, 4, 16);
 
             return packetbytes;
         }
