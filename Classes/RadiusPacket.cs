@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Flexinets.Radius
@@ -10,7 +11,7 @@ namespace Flexinets.Radius
     /// <summary>
     /// This class encapsulates a Radius packet and presents it in a more readable form
     /// </summary>
-    internal class RadiusPacket : IRadiusPacket
+    public class RadiusPacket : IRadiusPacket
     {
         private static readonly ILog _log = LogManager.GetLogger(typeof(RadiusPacket));
 
@@ -272,6 +273,131 @@ namespace Flexinets.Radius
                 Attributes.Add(name, new List<object>());
             }
             Attributes[name].Add(value);
+        }
+
+
+        /// <summary>
+        /// Validates a message authenticator if one exists in the packet
+        /// Message-Authenticator = HMAC-MD5 (Type, Identifier, Length, Request Authenticator, Attributes)
+        /// The HMAC-MD5 function takes in two arguments:
+        /// The payload of the packet, which includes the 16 byte Message-Authenticator field filled with zeros
+        /// The shared secret
+        /// http://www.cisco.com/c/en/us/support/docs/security-vpn/remote-authentication-dial-user-service-radius/118673-technote-radius-00.html#anc10
+        /// </summary>
+        /// <returns></returns>
+        public static String CalculateMessageAuthenticator(IRadiusPacket packet, RadiusDictionary dictionary)
+        {
+            var checkPacket = ParseRawPacket(GetBytes(packet, dictionary), dictionary, packet.SharedSecret);    // This is a bit daft, but we dont want side effects do we...
+            checkPacket.Attributes["Message-Authenticator"][0] = new Byte[16];
+
+            var bytes = GetBytes(checkPacket, dictionary);
+
+            using (var md5 = new HMACMD5(checkPacket.SharedSecret))
+            {
+                return Utils.ByteArrayToString(md5.ComputeHash(bytes));
+            }
+        }
+
+
+        /// <summary>
+        /// Get the raw packet bytes
+        /// </summary>
+        /// <returns></returns>
+        public static Byte[] GetBytes(IRadiusPacket packet, RadiusDictionary dictionary)
+        {
+            var packetbytes = new Byte[20]; // Should be 20 + AVPs...
+            packetbytes[0] = (Byte)packet.Code;
+            packetbytes[1] = packet.Identifier;
+
+            foreach (var attribute in packet.Attributes)
+            {
+                // todo add logic to check attribute object type matches type in dictionary?
+                foreach (var value in attribute.Value)
+                {
+                    var contentBytes = GetAttributeValueBytes(value);
+                    var headerBytes = new Byte[0];
+
+                    // Figure out what kind of attribute this is
+                    var attributeType = dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
+                    if (dictionary.Attributes.ContainsValue(attributeType.Value))
+                    {
+                        headerBytes = new Byte[2];
+                        headerBytes[0] = attributeType.Value.Value;
+                    }
+                    else
+                    {
+                        // Maybe this is a vendor attribute?
+                        var vendorAttributeType = dictionary.VendorAttributes.SingleOrDefault(o => o.Name == attribute.Key);
+                        if (vendorAttributeType != null)
+                        {
+                            headerBytes = new Byte[8];
+                            headerBytes[0] = 26; // VSA type
+
+                            var vendorId = BitConverter.GetBytes(vendorAttributeType.VendorId);
+                            Array.Reverse(vendorId);
+                            Buffer.BlockCopy(vendorId, 0, headerBytes, 2, 4);
+                            headerBytes[6] = (Byte)vendorAttributeType.Code;
+                            headerBytes[7] = (Byte)(2 + contentBytes.Length);  // length of the vsa part
+                        }
+                        else
+                        {
+                            _log.Debug($"Ignoring unknown attribute {attribute.Key}");
+                        }
+                    }
+
+                    var attributeBytes = new Byte[headerBytes.Length + contentBytes.Length];
+                    Buffer.BlockCopy(headerBytes, 0, attributeBytes, 0, headerBytes.Length);
+                    Buffer.BlockCopy(contentBytes, 0, attributeBytes, headerBytes.Length, contentBytes.Length);
+                    attributeBytes[1] = (Byte)attributeBytes.Length;
+
+                    // Add attribute to packet
+                    Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
+                    Buffer.BlockCopy(attributeBytes, 0, packetbytes, packetbytes.Length - attributeBytes.Length, attributeBytes.Length);
+                }
+            }
+
+            // Note the order of the bytes...
+            var responselengthbytes = BitConverter.GetBytes(packetbytes.Length);
+            packetbytes[2] = responselengthbytes[1];
+            packetbytes[3] = responselengthbytes[0];
+
+            Buffer.BlockCopy(packet.Authenticator, 0, packetbytes, 4, 16);
+
+            return packetbytes;
+        }
+
+
+        /// <summary>
+        /// Gets the byte representation of an attribute object
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        private static Byte[] GetAttributeValueBytes(Object value)
+        {
+            byte[] contentBytes;
+            if (value.GetType() == typeof(String))
+            {
+                contentBytes = Encoding.Default.GetBytes((String)value);
+            }
+            else if (value.GetType() == typeof(UInt32))
+            {
+                contentBytes = BitConverter.GetBytes((UInt32)value);
+                Array.Reverse(contentBytes);
+            }
+            else if (value.GetType() == typeof(Byte[]))
+            {
+                contentBytes = (Byte[])value;
+            }
+            else if (value.GetType() == typeof(IPAddress))
+            {
+                contentBytes = ((IPAddress)value).GetAddressBytes();
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+
+            return contentBytes;
         }
     }
 }

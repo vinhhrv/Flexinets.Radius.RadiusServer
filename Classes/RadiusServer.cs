@@ -212,106 +212,15 @@ namespace Flexinets.Radius
 
 
         /// <summary>
-        /// Get the raw packet bytes
+        /// Get the raw packet bytes with calculated response authenticator
         /// </summary>
         /// <returns></returns>
         public static Byte[] GetBytes(IRadiusPacket packet, RadiusDictionary dictionary)
         {
-            var packetbytes = new Byte[20]; // Should be 20 + AVPs...
-            packetbytes[0] = (Byte)packet.Code;
-            packetbytes[1] = packet.Identifier;
-
-            foreach (var attribute in packet.Attributes)
-            {
-                // todo add logic to check attribute object type matches type in dictionary?
-                foreach (var value in attribute.Value)
-                {
-                    var contentBytes = GetAttributeValueBytes(value);
-                    var headerBytes = new Byte[0];
-
-                    // Figure out what kind of attribute this is
-                    var attributeType = dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
-                    if (dictionary.Attributes.ContainsValue(attributeType.Value))
-                    {
-                        headerBytes = new Byte[2];
-                        headerBytes[0] = attributeType.Value.Value;
-                    }
-                    else
-                    {
-                        // Maybe this is a vendor attribute?
-                        var vendorAttributeType = dictionary.VendorAttributes.SingleOrDefault(o => o.Name == attribute.Key);
-                        if (vendorAttributeType != null)
-                        {
-                            headerBytes = new Byte[8];
-                            headerBytes[0] = 26; // VSA type
-
-                            var vendorId = BitConverter.GetBytes(vendorAttributeType.VendorId);
-                            Array.Reverse(vendorId);
-                            Buffer.BlockCopy(vendorId, 0, headerBytes, 2, 4);
-                            headerBytes[6] = (Byte)vendorAttributeType.Code;
-                            headerBytes[7] = (Byte)(2 + contentBytes.Length);  // length of the vsa part
-                        }
-                        else
-                        {
-                            _log.Debug($"Ignoring unknown attribute {attribute.Key}");
-                        }
-                    }
-
-                    var attributeBytes = new Byte[headerBytes.Length + contentBytes.Length];
-                    Buffer.BlockCopy(headerBytes, 0, attributeBytes, 0, headerBytes.Length);
-                    Buffer.BlockCopy(contentBytes, 0, attributeBytes, headerBytes.Length, contentBytes.Length);
-                    attributeBytes[1] = (Byte)attributeBytes.Length;
-
-                    // Add attribute to packet
-                    Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
-                    Buffer.BlockCopy(attributeBytes, 0, packetbytes, packetbytes.Length - attributeBytes.Length, attributeBytes.Length);
-                }
-            }
-
-            // Note the order of the bytes...
-            var responselengthbytes = BitConverter.GetBytes(packetbytes.Length);
-            packetbytes[2] = responselengthbytes[1];
-            packetbytes[3] = responselengthbytes[0];
-
-            // Done last... includes total packet length
-            var responseAuthenticator = CreateResponseAuthenticator(packet.SharedSecret, packet.Authenticator, packetbytes);
-            Buffer.BlockCopy(responseAuthenticator, 0, packetbytes, 4, 16);
-
-            return packetbytes;
-        }
-
-
-        /// <summary>
-        /// Gets the byte representation of an attribute object
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        private static Byte[] GetAttributeValueBytes(Object value)
-        {
-            byte[] contentBytes;
-            if (value.GetType() == typeof(String))
-            {
-                contentBytes = Encoding.Default.GetBytes((String)value);
-            }
-            else if (value.GetType() == typeof(UInt32))
-            {
-                contentBytes = BitConverter.GetBytes((UInt32)value);
-                Array.Reverse(contentBytes);
-            }
-            else if (value.GetType() == typeof(Byte[]))
-            {
-                contentBytes = (Byte[])value;
-            }
-            else if (value.GetType() == typeof(IPAddress))
-            {
-                contentBytes = ((IPAddress)value).GetAddressBytes();
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
-
-            return contentBytes;
+            var packetBytes = RadiusPacket.GetBytes(packet, dictionary);
+            var responseAuthenticator = CreateResponseAuthenticator(packet.SharedSecret, packet.Authenticator, packetBytes);
+            Buffer.BlockCopy(responseAuthenticator, 0, packetBytes, 4, 16);
+            return packetBytes;
         }
 
 
