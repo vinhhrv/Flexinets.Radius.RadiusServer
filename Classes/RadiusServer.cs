@@ -149,23 +149,6 @@ namespace Flexinets.Radius
 
 
         /// <summary>
-        /// Log packet bytes for debugging
-        /// </summary>
-        /// <param name="packetbytes"></param>
-        private static void DumpPacketBytes(Byte[] packetbytes)
-        {
-            try
-            {
-                _log.Debug(ByteArrayToString(packetbytes));
-            }
-            catch (Exception)
-            {
-                _log.Warn("duh");
-            }
-        }
-
-
-        /// <summary>
         /// Parses a packet and gets a response packet from the handler
         /// </summary>
         /// <param name="packethandler"></param>
@@ -189,6 +172,8 @@ namespace Flexinets.Radius
             {
                 DumpPacket(requestPacket);
             }
+
+            // Todo add message authenticator and accounting request authenticator validation
 
             // Handle status server requests in server outside packet handler
             if (requestPacket.Code == PacketCode.StatusServer)
@@ -223,29 +208,6 @@ namespace Flexinets.Radius
             var responseBytes = GetBytes(responsepacket, dictionary);
             _server.Send(responseBytes, responseBytes.Length, recipient);   // todo thread safety... although this implementation will be implicitly thread safeish...
             _log.Info($"{responsepacket.Code} sent to {recipient.Address}:{recipient.Port} Id={responsepacket.Identifier}");
-        }
-
-
-        /// <summary>
-        /// Dump the packet attributes to the log
-        /// </summary>
-        /// <param name="packet"></param>
-        private static void DumpPacket(IRadiusPacket packet)
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine($"Packet dump for {packet.Identifier}:");
-            foreach (var attribute in packet.Attributes)
-            {
-                if (attribute.Key == "User-Password")
-                {
-                    sb.AppendLine($"{attribute.Key} length : {attribute.Value.First().ToString().Length}");
-                }
-                else
-                {
-                    attribute.Value.ForEach(o => sb.AppendLine($"{attribute.Key} : {o} [{o.GetType()}]"));
-                }
-            }
-            _log.Debug(sb.ToString());
         }
 
 
@@ -320,7 +282,7 @@ namespace Flexinets.Radius
 
 
         /// <summary>
-        /// Gets the byte awway representation of an attribute object
+        /// Gets the byte representation of an attribute object
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
@@ -402,6 +364,46 @@ namespace Flexinets.Radius
                 hex.AppendFormat($"{b:x2}");
             }
             return hex.ToString();
+        }
+
+
+        /// <summary>
+        /// Log packet bytes for debugging
+        /// </summary>
+        /// <param name="packetbytes"></param>
+        private static void DumpPacketBytes(Byte[] packetbytes)
+        {
+            try
+            {
+                _log.Debug(ByteArrayToString(packetbytes));
+            }
+            catch (Exception)
+            {
+                _log.Warn("duh");
+            }
+        }
+    
+
+        /// <summary>
+        /// Dump the packet attributes to the log
+        /// </summary>
+        /// <param name="packet"></param>
+        private static void DumpPacket(IRadiusPacket packet)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Packet dump for {packet.Identifier}:");
+            foreach (var attribute in packet.Attributes)
+            {
+                if (attribute.Key == "User-Password")
+                {
+                    sb.AppendLine($"{attribute.Key} length : {attribute.Value.First().ToString().Length}");
+                }
+                else
+                {
+                    attribute.Value.ForEach(o => sb.AppendLine($"{attribute.Key} : {o} [{o.GetType()}]"));
+                }
+            }
+            _log.Debug(sb.ToString());
         }
     }
 }
