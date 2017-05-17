@@ -282,7 +282,7 @@ namespace Flexinets.Radius
         /// The HMAC-MD5 function takes in two arguments:
         /// The payload of the packet, which includes the 16 byte Message-Authenticator field filled with zeros
         /// The shared secret
-        /// http://www.cisco.com/c/en/us/support/docs/security-vpn/remote-authentication-dial-user-service-radius/118673-technote-radius-00.html#anc10
+        /// https://www.ietf.org/rfc/rfc2869.txt
         /// </summary>
         /// <returns></returns>
         public static String CalculateMessageAuthenticator(IRadiusPacket packet, RadiusDictionary dictionary)

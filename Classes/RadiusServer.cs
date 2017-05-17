@@ -111,7 +111,10 @@ namespace Flexinets.Radius
                     if (_packetHandlers.TryGetValue(sender.Address, out var handler))
                     {
                         var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
-                        SendResponsePacket(responsePacket, sender, _dictionary);
+                        if (responsePacket != null)
+                        {
+                            SendResponsePacket(responsePacket, sender, _dictionary);
+                        }  
                     }
                     else
                     {
@@ -119,7 +122,6 @@ namespace Flexinets.Radius
                         var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes("wut"));
                         DumpPacket(packet);
                     }
-
                 }
                 catch (ArgumentException ex)
                 {
@@ -172,8 +174,17 @@ namespace Flexinets.Radius
             {
                 DumpPacket(requestPacket);
             }
-
-            // Todo add message authenticator and accounting request authenticator validation
+            
+            if (requestPacket.Attributes.ContainsKey("Message-Authenticator"))
+            {
+                var messageAuthenticator = Utils.ByteArrayToString(requestPacket.GetAttribute<Byte[]>("Message-Authenticator"));
+                var calculatedMessageAuthenticator = RadiusPacket.CalculateMessageAuthenticator(requestPacket, _dictionary);
+                if (messageAuthenticator != calculatedMessageAuthenticator)
+                {
+                    _log.Warn($"Invalid Message-Authenticator in packet {requestPacket.Identifier} from {sender.Address}:{sender.Port}, check secret");
+                    return null;
+                }
+            }
 
             // Handle status server requests in server outside packet handler
             if (requestPacket.Code == PacketCode.StatusServer)
