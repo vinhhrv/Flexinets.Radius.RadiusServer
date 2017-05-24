@@ -103,51 +103,65 @@ namespace Flexinets.Radius
         {
             if (Running)
             {
-                var sender = new IPEndPoint(IPAddress.Any, 0);
-                var packetbytes = _server.EndReceive(ar, ref sender);
-
-                // Immediately start listening for the next packet
-                _server.BeginReceive(new AsyncCallback(ReceiveCallback), null);
-
+                IPEndPoint sender = null;
+                Byte[] packetbytes = null;
                 try
                 {
-                    _log.Debug($"Received packet from {sender.Address}:{sender.Port}");
-                    if (_packetHandlers.TryGetValue(sender.Address, out var handler))
-                    {
-                        var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
-                        if (responsePacket != null)
-                        {
-                            SendResponsePacket(responsePacket, sender, _dictionary);
-                        }
-                    }
-                    else
-                    {
-                        _log.Error($"No packet handler found for remote ip {sender.Address}");
-                        var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes("wut"));
-                        DumpPacket(packet);
-                    }
-                }
-                catch (ArgumentException ex)
-                {
-                    _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
-                    DumpPacketBytes(packetbytes);
-                }
-                catch (OverflowException ex)
-                {
-                    _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
-                    DumpPacketBytes(packetbytes);
+                    sender = new IPEndPoint(IPAddress.Any, 0);
+                    packetbytes = _server.EndReceive(ar, ref sender);
                 }
                 catch (Exception ex)
                 {
+                    _log.Error("Receive packet failed", ex);
+                }
+                finally
+                {
+                    // Immediately start listening for the next packet
+                    _server.BeginReceive(new AsyncCallback(ReceiveCallback), null);
+                }
+
+                if (sender != null && packetbytes != null)
+                {
                     try
                     {
-                        _log.Error($"Failed to receive packet from {sender.Address}:{sender.Port}", ex);
+                        _log.Debug($"Received packet from {sender.Address}:{sender.Port}");
+                        if (_packetHandlers.TryGetValue(sender.Address, out var handler))
+                        {
+                            var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
+                            if (responsePacket != null)
+                            {
+                                SendResponsePacket(responsePacket, sender, _dictionary);
+                            }
+                        }
+                        else
+                        {
+                            _log.Error($"No packet handler found for remote ip {sender.Address}");
+                            var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes("wut"));
+                            DumpPacket(packet);
+                        }
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
                         DumpPacketBytes(packetbytes);
                     }
-                    catch (Exception iex)
+                    catch (OverflowException ex)
                     {
-                        _log.Warn("Couldnt get sender?!", iex);
-                        _log.Error("Failed to receive packet", ex);
+                        _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
+                        DumpPacketBytes(packetbytes);
+                    }
+                    catch (Exception ex)
+                    {
+                        try
+                        {
+                            _log.Error($"Failed to receive packet from {sender.Address}:{sender.Port}", ex);
+                            DumpPacketBytes(packetbytes);
+                        }
+                        catch (Exception iex)
+                        {
+                            _log.Warn("Couldnt get sender?!", iex);
+                            _log.Error("Failed to receive packet", ex);
+                        }
                     }
                 }
             }
