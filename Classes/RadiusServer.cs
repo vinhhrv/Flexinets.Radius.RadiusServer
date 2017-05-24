@@ -12,7 +12,8 @@ namespace Flexinets.Radius
     public sealed class RadiusServer : IDisposable
     {
         private static readonly ILog _log = LogManager.GetLogger(typeof(RadiusServer));
-        private readonly IUdpClientWrapper _server;
+        private IUdpClientWrapper _server;
+        private readonly IPEndPoint _serverEndpoint;
         private readonly RadiusDictionary _dictionary;
         private readonly Dictionary<IPAddress, PacketHandlerContainer> _packetHandlers = new Dictionary<IPAddress, PacketHandlerContainer>();
 
@@ -30,7 +31,7 @@ namespace Flexinets.Radius
         /// <param name="dictionary"></param>
         public RadiusServer(IPEndPoint serverEndpoint, RadiusDictionary dictionary)
         {
-            _server = new UdpClientWrapper(serverEndpoint);
+            _serverEndpoint = serverEndpoint;
             _dictionary = dictionary;
         }
 
@@ -55,8 +56,11 @@ namespace Flexinets.Radius
         {
             if (!Running)
             {
-                var endpoint = (IPEndPoint)_server.Client.LocalEndPoint;
-                _log.Info($"Starting Radius server on {endpoint.Address}:{endpoint.Port}");
+                if (_server == null)
+                {
+                    _server = new UdpClientWrapper(_serverEndpoint);
+                }
+                _log.Info($"Starting Radius server on {_serverEndpoint.Address}:{_serverEndpoint.Port}");
 
                 Running = true;
                 _server.BeginReceive(new AsyncCallback(ReceiveCallback), null);
@@ -75,12 +79,12 @@ namespace Flexinets.Radius
         /// </summary>
         public void Stop()
         {
-            if (Running)
+            if (Running && _server != null)
             {
                 _log.Info("Stopping server");
 
                 Running = false;
-                _server.Close();
+                _server.Dispose();
 
                 _log.Info("Stopped");
             }
@@ -114,7 +118,7 @@ namespace Flexinets.Radius
                         if (responsePacket != null)
                         {
                             SendResponsePacket(responsePacket, sender, _dictionary);
-                        }  
+                        }
                     }
                     else
                     {
@@ -174,7 +178,7 @@ namespace Flexinets.Radius
             {
                 DumpPacket(requestPacket);
             }
-            
+
             if (requestPacket.Attributes.ContainsKey("Message-Authenticator"))
             {
                 var messageAuthenticator = Utils.ByteArrayToString(requestPacket.GetAttribute<Byte[]>("Message-Authenticator"));
@@ -285,7 +289,7 @@ namespace Flexinets.Radius
                 _log.Warn("duh");
             }
         }
-    
+
 
         /// <summary>
         /// Dump the packet attributes to the log
