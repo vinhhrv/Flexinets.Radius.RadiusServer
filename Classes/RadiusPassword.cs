@@ -60,7 +60,7 @@ namespace Flexinets.Radius
             {
                 var temp = new Byte[16];
                 Buffer.BlockCopy(passwordBytes, (n - 1) * 16, temp, 0, 16);
-                sb.Append(Encoding.Default.GetString(EncryptDecrypt(temp, key)));
+                sb.Append(Encoding.UTF8.GetString(EncryptDecrypt(temp, key)));
                 key = CreateKey(radiusSharedSecret, temp);
             }
 

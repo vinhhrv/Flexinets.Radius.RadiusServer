@@ -136,7 +136,7 @@ namespace Flexinets.Radius
                         else
                         {
                             _log.Error($"No packet handler found for remote ip {sender.Address}");
-                            var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes("wut"));
+                            var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.UTF8.GetBytes("wut"));
                             DumpPacket(packet);
                         }
                     }
@@ -178,7 +178,7 @@ namespace Flexinets.Radius
         /// <returns></returns>
         public IRadiusPacket GetResponsePacket(IPacketHandler packethandler, String secret, Byte[] packetbytes, IPEndPoint sender)
         {
-            var requestPacket = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.ASCII.GetBytes(secret));
+            var requestPacket = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.UTF8.GetBytes(secret));
             if (requestPacket.Code == PacketCode.AccountingRequest)
             {
                 _log.Info($"Received {requestPacket.Code} {requestPacket.GetAttribute<AcctStatusType>("Acct-Status-Type")} from {sender.Address}:{sender.Port} Id={requestPacket.Identifier}");

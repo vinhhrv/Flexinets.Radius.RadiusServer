@@ -114,7 +114,7 @@ namespace RadiusServerTests
             var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
             var dictionary = new RadiusDictionary(path);
 
-            var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.ASCII.GetBytes(secret));
+            var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var bytes = requestPacket.GetBytes(dictionary);
 
             Assert.AreEqual(expected, Utils.ByteArrayToString(bytes));
@@ -134,7 +134,7 @@ namespace RadiusServerTests
             var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
             var dictionary = new RadiusDictionary(path);
 
-            var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.ASCII.GetBytes(secret));
+            var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var calculatedMessageAuthenticator = RadiusPacket.CalculateMessageAuthenticator(requestPacket, dictionary);
             Assert.AreEqual(expected, calculatedMessageAuthenticator);
         }
@@ -153,7 +153,7 @@ namespace RadiusServerTests
             var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
             var dictionary = new RadiusDictionary(path);
 
-            var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.ASCII.GetBytes(secret));
+            var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var calculatedMessageAuthenticator = RadiusPacket.CalculateMessageAuthenticator(requestPacket, dictionary);
             Assert.AreNotEqual(expected, calculatedMessageAuthenticator);
         }

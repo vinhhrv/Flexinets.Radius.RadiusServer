@@ -158,10 +158,10 @@ namespace Flexinets.Radius
             switch (type)
             {
                 case "string":
-                    return Encoding.Default.GetString(contentBytes);
+                    return Encoding.UTF8.GetString(contentBytes);
 
                 case "tagged-string":
-                    return Encoding.Default.GetString(contentBytes);
+                    return Encoding.UTF8.GetString(contentBytes);
 
                 case "binary":
                     // If this is a password attribute it must be decrypted
