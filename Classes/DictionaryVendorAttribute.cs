@@ -5,10 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Flexinets.Radius
-{
-    /// <summary>
-    /// VENDORATTR      9 	Cisco-Maximun-Channels          235     integer
-    /// </summary>
+{    
     public class DictionaryVendorAttribute
     {
         public readonly UInt32 VendorId;
@@ -16,7 +13,15 @@ namespace Flexinets.Radius
         public readonly UInt32 Code;
         public readonly String Type;
 
-        public DictionaryVendorAttribute(UInt32 vendorId, UInt32 code, String name, String type)
+
+        /// <summary>
+        /// Create a dictionary vendor specific attribute
+        /// </summary>
+        /// <param name="vendorId"></param>
+        /// <param name="name"></param>
+        /// <param name="code"></param>
+        /// <param name="type"></param>
+        public DictionaryVendorAttribute(UInt32 vendorId, String name, UInt32 code, String type)
         {
             VendorId = vendorId;
             Name = name;

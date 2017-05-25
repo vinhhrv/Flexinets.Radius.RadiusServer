@@ -322,7 +322,7 @@ namespace Flexinets.Radius
                     if (dictionary.Attributes.ContainsValue(attributeType.Value))
                     {
                         headerBytes = new Byte[2];
-                        headerBytes[0] = attributeType.Value.Value;
+                        headerBytes[0] = attributeType.Value.Code;
                     }
                     else
                     {

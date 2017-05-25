@@ -6,18 +6,21 @@ using System.Threading.Tasks;
 
 namespace Flexinets.Radius
 {
-    /// <summary>
-    /// ATTRIBUTE	Framed-Protocol			7	integer
-    /// </summary>
     public class DictionaryAttribute
     {
-        public readonly Byte Value;
+        public readonly Byte Code;
         public readonly String Name;
         public readonly String Type;
 
-        public DictionaryAttribute(Byte value, String name, String type)
+        /// <summary>
+        /// Create a dictionary rfc attribute
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="code"></param>
+        /// <param name="type"></param>
+        public DictionaryAttribute(String name, Byte code, String type)
         {
-            Value = value;
+            Code = code;
             Name = name;
             Type = type;
         }
