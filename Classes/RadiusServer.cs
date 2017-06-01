@@ -140,12 +140,7 @@ namespace Flexinets.Radius
                             DumpPacket(packet);
                         }
                     }
-                    catch (ArgumentException ex)
-                    {
-                        _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
-                        DumpPacketBytes(packetbytes);
-                    }
-                    catch (OverflowException ex)
+                    catch (Exception ex) when (ex is ArgumentException || ex is OverflowException)
                     {
                         _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
                         DumpPacketBytes(packetbytes);
