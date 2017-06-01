@@ -28,21 +28,15 @@ namespace Flexinets.Radius
         }
 
 
-        public IAsyncResult BeginReceive(AsyncCallback requestCallback, object state)
-        {
-            return _client.BeginReceive(requestCallback, state);
-        }
-
-
-        public byte[] EndReceive(IAsyncResult asyncResult, ref IPEndPoint remoteEP)
-        {
-            return _client.EndReceive(asyncResult, ref remoteEP);
-        }
-
-
         public void Send(Byte[] content, Int32 length, IPEndPoint recipient)
         {
             _client.Send(content, length, recipient);
+        }
+
+
+        public Task<UdpReceiveResult> ReceiveAsync()
+        {
+            return _client.ReceiveAsync();
         }
 
 

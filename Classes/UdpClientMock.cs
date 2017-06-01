@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Flexinets.Radius
 {
@@ -90,6 +91,11 @@ namespace Flexinets.Radius
             var request = "010000380f403f9473978057bd83d5cb98f4227a01066e656d6f02120dbe708d93d413ce3196e43f782a0aee0406c0a80110050600000003";
             var bytes = Utils.StringToByteArray(request);
             return bytes;
+        }
+
+        public Task<UdpReceiveResult> ReceiveAsync()
+        {
+            throw new NotImplementedException();
         }
 
         public void Send(byte[] content, int length, IPEndPoint recipient)

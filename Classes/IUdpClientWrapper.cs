@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace Flexinets.Radius
 {
@@ -8,10 +9,9 @@ namespace Flexinets.Radius
     {
         Socket Client { get; }
 
-        IAsyncResult BeginReceive(AsyncCallback requestCallback, object state);
         void Close();
         void Dispose();
-        byte[] EndReceive(IAsyncResult asyncResult, ref IPEndPoint remoteEP);
         void Send(byte[] content, int length, IPEndPoint recipient);
+        Task<UdpReceiveResult> ReceiveAsync();
     }
 }

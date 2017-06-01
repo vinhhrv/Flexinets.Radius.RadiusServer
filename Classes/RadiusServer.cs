@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Flexinets.Radius
 {
@@ -56,15 +57,10 @@ namespace Flexinets.Radius
         {
             if (!Running)
             {
-                if (_server == null)
-                {
-                    _server = new UdpClientWrapper(_serverEndpoint);
-                }
-                _log.Info($"Starting Radius server on {_serverEndpoint.Address}:{_serverEndpoint.Port}");
-
+                _server = new UdpClientWrapper(_serverEndpoint);
                 Running = true;
-                _server.BeginReceive(new AsyncCallback(ReceiveCallback), null);
-
+                _log.Info($"Starting Radius server on {_serverEndpoint.Address}:{_serverEndpoint.Port}");
+                var receiveTask = StartReceiveLoop();
                 _log.Info("Server started");
             }
             else
@@ -79,13 +75,11 @@ namespace Flexinets.Radius
         /// </summary>
         public void Stop()
         {
-            if (Running && _server != null)
+            if (Running)
             {
                 _log.Info("Stopping server");
-
                 Running = false;
                 _server.Dispose();
-
                 _log.Info("Stopped");
             }
             else
@@ -96,69 +90,60 @@ namespace Flexinets.Radius
 
 
         /// <summary>
-        /// Receive packets
+        /// Start the loop used for receiving packets
         /// </summary>
-        /// <param name="ar"></param>
-        private void ReceiveCallback(IAsyncResult ar)
+        /// <returns></returns>
+        private async Task StartReceiveLoop()
         {
-            if (Running)
+            while (Running)
             {
-                IPEndPoint sender = null;
-                Byte[] packetbytes = null;
                 try
                 {
-                    sender = new IPEndPoint(IPAddress.Any, 0);
-                    packetbytes = _server.EndReceive(ar, ref sender);
+                    var response = await _server.ReceiveAsync();
+                    _log.Debug($"Received packet from {response.RemoteEndPoint.Address}:{response.RemoteEndPoint.Port}");
+                    Task.Run(() => { HandlePacket(response.RemoteEndPoint, response.Buffer); }).ConfigureAwait(false);
                 }
+                catch (ObjectDisposedException) { }
                 catch (Exception ex)
                 {
-                    _log.Error("Receive packet failed", ex);
+                    _log.Fatal("Something went wrong receiving packet", ex);
                 }
-                finally
-                {
-                    // Immediately start listening for the next packet
-                    _server.BeginReceive(new AsyncCallback(ReceiveCallback), null);
-                }
+            }
+        }
 
-                if (sender != null && packetbytes != null)
+
+        /// <summary>
+        /// Used to handle the packets asynchronously
+        /// </summary>
+        /// <param name="ar"></param>
+        private void HandlePacket(IPEndPoint sender, Byte[] packetbytes)
+        {
+            try
+            {
+                if (_packetHandlers.TryGetValue(sender.Address, out var handler))
                 {
-                    try
+                    var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
+                    if (responsePacket != null)
                     {
-                        _log.Debug($"Received packet from {sender.Address}:{sender.Port}");
-                        if (_packetHandlers.TryGetValue(sender.Address, out var handler))
-                        {
-                            var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
-                            if (responsePacket != null)
-                            {
-                                SendResponsePacket(responsePacket, sender, _dictionary);
-                            }
-                        }
-                        else
-                        {
-                            _log.Error($"No packet handler found for remote ip {sender.Address}");
-                            var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.UTF8.GetBytes("wut"));
-                            DumpPacket(packet);
-                        }
-                    }
-                    catch (Exception ex) when (ex is ArgumentException || ex is OverflowException)
-                    {
-                        _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
-                        DumpPacketBytes(packetbytes);
-                    }
-                    catch (Exception ex)
-                    {
-                        try
-                        {
-                            _log.Error($"Failed to receive packet from {sender.Address}:{sender.Port}", ex);
-                            DumpPacketBytes(packetbytes);
-                        }
-                        catch (Exception iex)
-                        {
-                            _log.Warn("Couldnt get sender?!", iex);
-                            _log.Error("Failed to receive packet", ex);
-                        }
+                        SendResponsePacket(responsePacket, sender, _dictionary);
                     }
                 }
+                else
+                {
+                    _log.Error($"No packet handler found for remote ip {sender.Address}");
+                    var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.UTF8.GetBytes("wut"));
+                    DumpPacket(packet);
+                }
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is OverflowException)
+            {
+                _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
+                DumpPacketBytes(packetbytes);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Failed to receive packet from {sender.Address}:{sender.Port}", ex);
+                DumpPacketBytes(packetbytes);
             }
         }
 
@@ -276,10 +261,7 @@ namespace Flexinets.Radius
         /// </summary>
         public void Dispose()
         {
-            if (_server != null)
-            {
-                _server.Dispose();
-            }
+            _server?.Dispose();
         }
 
 
