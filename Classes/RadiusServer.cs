@@ -101,7 +101,7 @@ namespace Flexinets.Radius
                 {
                     var response = await _server.ReceiveAsync();
                     _log.Debug($"Received packet from {response.RemoteEndPoint.Address}:{response.RemoteEndPoint.Port}");
-                    Task.Run(() => { HandlePacket(response.RemoteEndPoint, response.Buffer); }).ConfigureAwait(false);
+                    Task.Run(() => { HandlePacket(response.RemoteEndPoint, response.Buffer); });
                 }
                 catch (ObjectDisposedException) { }
                 catch (Exception ex)
