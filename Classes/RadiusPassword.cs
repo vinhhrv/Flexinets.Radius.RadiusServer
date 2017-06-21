@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Flexinets.Radius
 {
@@ -37,7 +35,7 @@ namespace Flexinets.Radius
             Buffer.BlockCopy(sharedsecret, 0, key, 0, sharedsecret.Length);
             Buffer.BlockCopy(authenticator, 0, key, sharedsecret.Length, authenticator.Length);
 
-            using (var md5 = MD5CryptoServiceProvider.Create())
+            using (var md5 = MD5.Create())
             {
                 return md5.ComputeHash(key);
             }
@@ -47,7 +45,7 @@ namespace Flexinets.Radius
         /// <summary>
         /// Decrypt user password
         /// </summary>
-        /// <param name="_radiusSharedSecret"></param>
+        /// <param name="radiusSharedSecret"></param>
         /// <param name="authenticator"></param>
         /// <param name="passwordBytes"></param>
         /// <returns></returns>
@@ -56,7 +54,7 @@ namespace Flexinets.Radius
             var sb = new StringBuilder();
             var key = CreateKey(radiusSharedSecret, authenticator);
 
-            for (Byte n = 1; n <= passwordBytes.Length / 16; n++)
+            for (var n = 1; n <= passwordBytes.Length / 16; n++)
             {
                 var temp = new Byte[16];
                 Buffer.BlockCopy(passwordBytes, (n - 1) * 16, temp, 0, 16);
