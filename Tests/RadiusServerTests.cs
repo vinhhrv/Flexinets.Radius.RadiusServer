@@ -38,7 +38,7 @@ namespace RadiusServerTests
         /// Example from https://tools.ietf.org/html/rfc5997#section-6
         /// </summary>
         [TestMethod]
-        public void TestStatusServerResponsePacket()
+        public void TestStatusServerAuthenticationResponsePacket()
         {
             var request = "0cda00268a54f4686fb394c52866e302185d062350125a665e2e1e8411f3e243822097c84fa3";
             var expected = "02da0014ef0d552a4bf2d693ec2b6fe8b5411d66";
@@ -48,6 +48,28 @@ namespace RadiusServerTests
             var dictionary = new RadiusDictionary(path);
 
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
+            var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
+            var responseBytes = RadiusServer.GetBytes(response, dictionary);
+
+            Assert.AreEqual(expected, Utils.ByteArrayToString(responseBytes));
+        }
+
+
+        /// <summary>
+        /// Test status-server response
+        /// Example from https://tools.ietf.org/html/rfc5997#section-6
+        /// </summary>
+        [TestMethod]
+        public void TestStatusServerAccountingResponsePacket()
+        {
+            var request = "0cb30026925f6b66dd5fed571fcb1db7ad3882605012e8d6eabda910875cd91fdade26367858";
+            var expected = "05b300140f6f92145f107e2f504e860a4860669c";  // Note the error in the RFC. First byte should be 05 not 02
+            var secret = "xyzzy5461";
+
+            var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
+            var dictionary = new RadiusDictionary(path);
+
+            var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Accounting);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
             var responseBytes = RadiusServer.GetBytes(response, dictionary);
 
