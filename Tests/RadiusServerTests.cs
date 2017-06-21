@@ -25,7 +25,7 @@ namespace RadiusServerTests
             var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
             var dictionary = new RadiusDictionary(path);
 
-            var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary);
+            var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
             var responseBytes = RadiusServer.GetBytes(response, dictionary);
 
@@ -47,7 +47,7 @@ namespace RadiusServerTests
             var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
             var dictionary = new RadiusDictionary(path);
 
-            var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary);
+            var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
             var responseBytes = RadiusServer.GetBytes(response, dictionary);
 
@@ -70,7 +70,7 @@ namespace RadiusServerTests
             var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
             var dictionary = new RadiusDictionary(path);
 
-            var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary);
+            var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
             var responseBytes = RadiusServer.GetBytes(response, dictionary);
 
@@ -93,7 +93,7 @@ namespace RadiusServerTests
             var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
             var dictionary = new RadiusDictionary(path);
 
-            var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary);
+            var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
             var responseBytes = RadiusServer.GetBytes(response, dictionary);
 

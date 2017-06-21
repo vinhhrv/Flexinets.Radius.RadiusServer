@@ -195,7 +195,7 @@ namespace Flexinets.Radius
                 }
                 else if (_serverType == RadiusServerType.Accounting)
                 {
-                    requestPacket.CreateResponsePacket(PacketCode.AccountingResponse);
+                    return requestPacket.CreateResponsePacket(PacketCode.AccountingResponse);
                 }
             }
 
