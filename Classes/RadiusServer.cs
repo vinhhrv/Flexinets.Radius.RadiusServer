@@ -16,6 +16,7 @@ namespace Flexinets.Radius
         private IUdpClientWrapper _server;
         private readonly IPEndPoint _serverEndpoint;
         private readonly RadiusDictionary _dictionary;
+        private readonly RadiusServerType _serverType;
         private readonly Dictionary<IPAddress, PacketHandlerContainer> _packetHandlers = new Dictionary<IPAddress, PacketHandlerContainer>();
 
         public Boolean Running
@@ -30,10 +31,11 @@ namespace Flexinets.Radius
         /// </summary>
         /// <param name="serverEndpoint"></param>
         /// <param name="dictionary"></param>
-        public RadiusServer(IPEndPoint serverEndpoint, RadiusDictionary dictionary)
+        public RadiusServer(IPEndPoint serverEndpoint, RadiusDictionary dictionary, RadiusServerType serverType)
         {
             _serverEndpoint = serverEndpoint;
             _dictionary = dictionary;
+            _serverType = serverType;
         }
 
 
@@ -187,7 +189,14 @@ namespace Flexinets.Radius
             // Handle status server requests in server outside packet handler
             if (requestPacket.Code == PacketCode.StatusServer)
             {
-                return requestPacket.CreateResponsePacket(PacketCode.AccessAccept);
+                if (_serverType == RadiusServerType.Authentication)
+                {
+                    return requestPacket.CreateResponsePacket(PacketCode.AccessAccept);
+                }
+                else if (_serverType == RadiusServerType.Accounting)
+                {
+                    requestPacket.CreateResponsePacket(PacketCode.AccountingResponse);
+                }
             }
 
             _log.Debug($"Handling packet for remote ip {sender.Address} with {packethandler.GetType()}");

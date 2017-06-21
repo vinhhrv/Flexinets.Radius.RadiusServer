@@ -151,6 +151,7 @@
     <Compile Include="Classes\IPacketHandler.cs" />
     <Compile Include="Classes\IRadiusPacket.cs" />
     <Compile Include="Classes\PacketCode.cs" />
+    <Compile Include="Classes\RadiusServerType.cs" />
     <Compile Include="Classes\UdpClientMock.cs" />
     <Compile Include="Classes\UdpClientWrapper.cs" />
     <Compile Include="Classes\VendorSpecificAttribute.cs" />
