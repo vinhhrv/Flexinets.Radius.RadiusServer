@@ -191,10 +191,12 @@ namespace Flexinets.Radius
             {
                 if (_serverType == RadiusServerType.Authentication)
                 {
+                    _log.Debug($"Sending AccessAccept for StatusServer request from {sender.Address}:{sender.Port}");
                     return requestPacket.CreateResponsePacket(PacketCode.AccessAccept);
                 }
                 else if (_serverType == RadiusServerType.Accounting)
                 {
+                    _log.Debug($"Sending AccountingResponse for StatusServer request from {sender.Address}:{sender.Port}");
                     return requestPacket.CreateResponsePacket(PacketCode.AccountingResponse);
                 }
             }
