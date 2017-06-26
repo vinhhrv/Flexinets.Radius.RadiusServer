@@ -5162,6 +5162,13 @@ VENDORATTR      10415   3GPP-SGSN-IPv6-Address		15      string
 VENDORATTR      10415   3GPP-GGSN-IPv6-Address		16      string
 VENDORATTR      10415   3GPP-IPv6-DNS-Servers		17      string
 VENDORATTR      10415   3GPP-SGSN-MCC-MNC	 	18      string
+VENDORATTR      10415   3GPP-IMEISV					20      string
+VENDORATTR      10415   3GPP-RAT-Type				21		binary
+VENDORATTR      10415   3GPP-User-Location-Info			22		binary
+VENDORATTR      10415	3GPP-MS-Time-Zone			23		binary
+VENDORATTR      10415   3GPP-Negotiated-DSCP		26		binary
+
+
 
 # ANTlabs
 
