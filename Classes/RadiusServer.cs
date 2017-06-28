@@ -173,6 +173,7 @@ namespace Flexinets.Radius
             if (_log.IsDebugEnabled)
             {
                 DumpPacket(requestPacket);
+                DumpPacketBytes(packetbytes);
             }
 
             if (requestPacket.Attributes.ContainsKey("Message-Authenticator"))
