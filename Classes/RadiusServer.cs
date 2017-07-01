@@ -17,7 +17,7 @@ namespace Flexinets.Radius
         private readonly IPEndPoint _serverEndpoint;
         private readonly RadiusDictionary _dictionary;
         private readonly RadiusServerType _serverType;
-        private readonly Dictionary<IPAddress, PacketHandlerContainer> _packetHandlers = new Dictionary<IPAddress, PacketHandlerContainer>();
+        private readonly Dictionary<IPAddress, (IPacketHandler packetHandler, String secret)> _packetHandlers = new Dictionary<IPAddress, (IPacketHandler, String)>();
 
         public Boolean Running
         {
@@ -48,7 +48,7 @@ namespace Flexinets.Radius
         public void AddPacketHandler(IPAddress remoteEndpoint, String secret, IPacketHandler packethandler)
         {
             _log.Info($"Adding packet handler of type {packethandler.GetType()} for remote IP {remoteEndpoint.ToString()}");
-            _packetHandlers.Add(remoteEndpoint, new PacketHandlerContainer { secret = secret, packetHandler = packethandler });
+            _packetHandlers.Add(remoteEndpoint, (packethandler, secret));
         }
 
 

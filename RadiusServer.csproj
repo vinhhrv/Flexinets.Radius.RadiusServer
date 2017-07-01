@@ -129,7 +129,6 @@
     <Compile Include="Classes\AcctTerminateCause.cs" />
     <Compile Include="Classes\DictionaryVendorAttribute.cs" />
     <Compile Include="Classes\IUdpClientWrapper.cs" />
-    <Compile Include="Classes\PacketHandlerContainer.cs" />
     <Compile Include="Classes\RadiusDictionary.cs" />
     <Compile Include="Classes\DictionaryAttribute.cs" />
     <Compile Include="Classes\IPacketHandler.cs" />
