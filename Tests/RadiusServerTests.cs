@@ -200,6 +200,28 @@ namespace RadiusServerTests
             Assert.AreEqual("23201", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo));
             Assert.AreEqual("23430", Utils.GetMccMncFrom3GPPLocationInfo(Utils.StringToByteArray("0032f4030921b8e8")));
             Assert.AreEqual("310170", Utils.GetMccMncFrom3GPPLocationInfo(Utils.StringToByteArray("001300710921b8e8")));
-        }       
+        }
+
+
+        /// <summary>
+        /// Test message authenticator validation fail
+        /// </summary>
+        [TestMethod]
+        public void TestLTE3GPPLocationInfoParsing()
+        {
+            var request = "017301cea4571e304078c73bbb4367ca5fcede3e1f103433363838383735303636393736011b32333230313038353030373639373640666c6578696e65747304060af7e0611a1600001fe40120001031352e3020283537393333291e0b666c6578696e6574730606000000020706000000073d06000000121a0e00001fe4003e0008000000021a17000028af01113233323031303835303037363937361a0d000028af080732333230311a09000028af0a03351a0c000028af020605654e411a0c000028af0d06303830301a0c000028af0606c23084e01a0c000028af0706c23084da1a09000028af1503061a18000028af1412383632383238303231323838323230301a15000028af160f8232f210426d32f21000013e021a0d000028af120732333230311a0d000028af090732333230311a09000028af0c03301a0a000028af170480011a1f000028af051930382d34433038303030343933453030303034393345301a0c000028af0306000000001a09000028af1a03001a0e00001fe4001800080000000f050600012d2202121e205a653bc6cad430e70a585ab0271f1a0c0000159f5806000000031a1100000009170b464c4558494e4554532104393521043935210439352105323136";
+            var secret = "xyzzy5461";
+
+            var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
+            var dictionary = new RadiusDictionary(path);
+
+            var ltelocationid = Utils.StringToByteArray("8232f210426d32f21000013e02");
+            var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
+            var locationInfo = requestPacket.GetAttribute<Byte[]>("3GPP-User-Location-Info");
+            Assert.AreEqual("23201", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo));
+        }
+
+
+        // 
     }
 }

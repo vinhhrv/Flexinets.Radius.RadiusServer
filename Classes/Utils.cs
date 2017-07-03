@@ -1,10 +1,13 @@
-﻿using System;
+﻿using log4net;
+using System;
 using System.Text;
 
 namespace Flexinets.Radius
 {
     public static class Utils
     {
+        private static readonly ILog _log = LogManager.GetLogger(typeof(Utils));
+
         public static Byte[] StringToByteArray(String hex)
         {
             Int32 NumberChars = hex.Length;
@@ -36,7 +39,7 @@ namespace Flexinets.Radius
         {
             String mccmnc = null;
             var type = (LocationType)bytes[0];  // hmm...
-            if (type == LocationType.CGI || type == LocationType.ECGI || type == LocationType.RAI || type == LocationType.SAI || type == LocationType.TAI)
+            if (type == LocationType.CGI || type == LocationType.ECGI || type == LocationType.RAI || type == LocationType.SAI || type == LocationType.TAI || type == LocationType.TAIAndECGI)
             {
                 var mccDigit1 = (bytes[1] & 15).ToString();
                 var mccDigit2 = ((bytes[1] & 240) >> 4).ToString();
@@ -52,6 +55,11 @@ namespace Flexinets.Radius
                     mccmnc = mccmnc + mncDigit3;
                 }
             }
+            else
+            {
+                _log.Error($"Unable to parse mccmnc from location attribute {ByteArrayToString(bytes)}");
+            }
+
             return mccmnc;
         }
 
@@ -63,7 +71,7 @@ namespace Flexinets.Radius
         {
             CGI = 0,
             SAI = 1,
-            RAI = 2, 
+            RAI = 2,
             TAI = 128,
             ECGI = 129,
             TAIAndECGI = 130
