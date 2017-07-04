@@ -46,7 +46,9 @@ namespace Flexinets.Radius
         /// Parses the udp raw packet and returns a more easily readable IRadiusPacket
         /// </summary>
         /// <param name="packetBytes"></param>
-        public static IRadiusPacket ParseRawPacket(Byte[] packetBytes, RadiusDictionary dictionary, Byte[] radiusSharedSecret)
+        /// <param name="dictionary"></param>
+        /// <param name="sharedSecret"></param>
+        public static IRadiusPacket ParseRawPacket(Byte[] packetBytes, RadiusDictionary dictionary, Byte[] sharedSecret)
         {
             // Check the packet length and make sure its valid
             Array.Reverse(packetBytes, 2, 2);
@@ -60,7 +62,7 @@ namespace Flexinets.Radius
 
             var radiusPacket = new RadiusPacket
             {
-                SharedSecret = radiusSharedSecret,
+                SharedSecret = sharedSecret,
                 Attributes = new Dictionary<String, List<object>>(),
                 Identifier = packetBytes[1],
                 Code = (PacketCode)packetBytes[0],
@@ -151,9 +153,9 @@ namespace Flexinets.Radius
         /// <param name="type"></param>
         /// <param name="code"></param>
         /// <param name="authenticator"></param>
-        /// <param name="secret"></param>
+        /// <param name="sharedSecret"></param>
         /// <returns></returns>
-        private static Object ParseContentBytes(Byte[] contentBytes, String type, UInt32 code, Byte[] authenticator, Byte[] secret)
+        private static Object ParseContentBytes(Byte[] contentBytes, String type, UInt32 code, Byte[] authenticator, Byte[] sharedSecret)
         {
             switch (type)
             {
@@ -167,7 +169,7 @@ namespace Flexinets.Radius
                     // If this is a password attribute it must be decrypted
                     if (code == 2)
                     {
-                        return RadiusPassword.Decrypt(secret, authenticator, contentBytes);
+                        return RadiusPassword.Decrypt(sharedSecret, authenticator, contentBytes);
                     }
                     // Otherwise just dump the bytes into the attribute
                     else

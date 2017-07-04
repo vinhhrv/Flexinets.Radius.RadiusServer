@@ -31,11 +31,12 @@ namespace Flexinets.Radius
         /// <summary>
         /// Create a new server on endpoint
         /// </summary>
-        /// <param name="serverEndpoint"></param>
+        /// <param name="localEndpoint"></param>
         /// <param name="dictionary"></param>
-        public RadiusServer(IPEndPoint serverEndpoint, RadiusDictionary dictionary, RadiusServerType serverType)
+        /// <param name="serverType"></param>
+        public RadiusServer(IPEndPoint localEndpoint, RadiusDictionary dictionary, RadiusServerType serverType)
         {
-            _serverEndpoint = serverEndpoint;
+            _serverEndpoint = localEndpoint;
             _dictionary = dictionary;
             _serverType = serverType;
         }
@@ -45,12 +46,12 @@ namespace Flexinets.Radius
         /// Add packet handler for remote endpoint
         /// </summary>
         /// <param name="remoteEndpoint"></param>
-        /// <param name="secret"></param>
-        /// <param name="packethandler"></param>
-        public void AddPacketHandler(IPAddress remoteEndpoint, String secret, IPacketHandler packethandler)
+        /// <param name="sharedSecret"></param>
+        /// <param name="packetHandler"></param>
+        public void AddPacketHandler(IPAddress remoteEndpoint, String sharedSecret, IPacketHandler packetHandler)
         {
-            _log.Info($"Adding packet handler of type {packethandler.GetType()} for remote IP {remoteEndpoint.ToString()}");
-            _packetHandlers.Add(remoteEndpoint, (packethandler, secret));
+            _log.Info($"Adding packet handler of type {packetHandler.GetType()} for remote IP {remoteEndpoint.ToString()}");
+            _packetHandlers.Add(remoteEndpoint, (packetHandler, sharedSecret));
         }
 
 
@@ -118,37 +119,38 @@ namespace Flexinets.Radius
         /// <summary>
         /// Used to handle the packets asynchronously
         /// </summary>
-        /// <param name="ar"></param>
-        private void HandlePacket(IPEndPoint sender, Byte[] packetbytes)
+        /// <param name="remoteEndpoint"></param>
+        /// <param name="packetBytes"></param>
+        private void HandlePacket(IPEndPoint remoteEndpoint, Byte[] packetBytes)
         {
             try
             {                
-                _log.Debug($"Received packet from {sender}, Concurrent handlers count: {Interlocked.Increment(ref _concurrentHandlerCount)}");
+                _log.Debug($"Received packet from {remoteEndpoint}, Concurrent handlers count: {Interlocked.Increment(ref _concurrentHandlerCount)}");
 
-                if (_packetHandlers.TryGetValue(sender.Address, out var handler))
+                if (_packetHandlers.TryGetValue(remoteEndpoint.Address, out var handler))
                 {
-                    var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
+                    var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetBytes, remoteEndpoint);
                     if (responsePacket != null)
                     {
-                        SendResponsePacket(responsePacket, sender, _dictionary);
+                        SendResponsePacket(responsePacket, remoteEndpoint, _dictionary);
                     }
                 }
                 else
                 {
-                    _log.Error($"No packet handler found for remote ip {sender}");
-                    var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.UTF8.GetBytes("wut"));
+                    _log.Error($"No packet handler found for remote ip {remoteEndpoint}");
+                    var packet = RadiusPacket.ParseRawPacket(packetBytes, _dictionary, Encoding.UTF8.GetBytes("wut"));
                     DumpPacket(packet);
                 }
             }
             catch (Exception ex) when (ex is ArgumentException || ex is OverflowException)
             {
-                _log.Warn($"Ignoring malformed(?) packet received from {sender}", ex);
-                DumpPacketBytes(packetbytes);
+                _log.Warn($"Ignoring malformed(?) packet received from {remoteEndpoint}", ex);
+                DumpPacketBytes(packetBytes);
             }
             catch (Exception ex)
             {
-                _log.Error($"Failed to receive packet from {sender}", ex);
-                DumpPacketBytes(packetbytes);
+                _log.Error($"Failed to receive packet from {remoteEndpoint}", ex);
+                DumpPacketBytes(packetBytes);
             }
             finally
             {
@@ -160,27 +162,20 @@ namespace Flexinets.Radius
         /// <summary>
         /// Parses a packet and gets a response packet from the handler
         /// </summary>
-        /// <param name="packethandler"></param>
-        /// <param name="secret"></param>
-        /// <param name="packetbytes"></param>
-        /// <param name="sender"></param>
+        /// <param name="packetHandler"></param>
+        /// <param name="sharedSecret"></param>
+        /// <param name="packetBytes"></param>
+        /// <param name="remoteEndpoint"></param>
         /// <returns></returns>
-        public IRadiusPacket GetResponsePacket(IPacketHandler packethandler, String secret, Byte[] packetbytes, IPEndPoint sender)
+        public IRadiusPacket GetResponsePacket(IPacketHandler packetHandler, String sharedSecret, Byte[] packetBytes, IPEndPoint remoteEndpoint)
         {
-            var requestPacket = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.UTF8.GetBytes(secret));
-            if (requestPacket.Code == PacketCode.AccountingRequest)
-            {
-                _log.Info($"Received {requestPacket.Code} {requestPacket.GetAttribute<AcctStatusType>("Acct-Status-Type")} from {sender} Id={requestPacket.Identifier}");
-            }
-            else
-            {
-                _log.Info($"Received {requestPacket.Code} from {sender} Id={requestPacket.Identifier}");
-            }
+            var requestPacket = RadiusPacket.ParseRawPacket(packetBytes, _dictionary, Encoding.UTF8.GetBytes(sharedSecret));
+            _log.Info($"Received {requestPacket.Code} from {remoteEndpoint} Id={requestPacket.Identifier}");
 
             if (_log.IsDebugEnabled)
             {
                 DumpPacket(requestPacket);
-                DumpPacketBytes(packetbytes);
+                DumpPacketBytes(packetBytes);
             }
 
             if (requestPacket.Attributes.ContainsKey("Message-Authenticator"))
@@ -189,7 +184,7 @@ namespace Flexinets.Radius
                 var calculatedMessageAuthenticator = RadiusPacket.CalculateMessageAuthenticator(requestPacket, _dictionary);
                 if (messageAuthenticator != calculatedMessageAuthenticator)
                 {
-                    _log.Warn($"Invalid Message-Authenticator in packet {requestPacket.Identifier} from {sender}, check secret");
+                    _log.Warn($"Invalid Message-Authenticator in packet {requestPacket.Identifier} from {remoteEndpoint}, check secret");
                     return null;
                 }
             }
@@ -197,25 +192,17 @@ namespace Flexinets.Radius
             // Handle status server requests in server outside packet handler
             if (requestPacket.Code == PacketCode.StatusServer)
             {
-                if (_serverType == RadiusServerType.Authentication)
-                {
-                    _log.Debug($"Sending AccessAccept for StatusServer request from {sender}");
-                    return requestPacket.CreateResponsePacket(PacketCode.AccessAccept);
-                }
-                else if (_serverType == RadiusServerType.Accounting)
-                {
-                    _log.Debug($"Sending AccountingResponse for StatusServer request from {sender}");
-                    return requestPacket.CreateResponsePacket(PacketCode.AccountingResponse);
-                }
+                var responseCode = _serverType == RadiusServerType.Authentication ? PacketCode.AccessAccept : PacketCode.AccountingResponse;
+                _log.Debug($"Sending {responseCode} for StatusServer request from {remoteEndpoint}");
+                return requestPacket.CreateResponsePacket(responseCode);
             }
 
-            _log.Debug($"Handling packet for remote ip {sender.Address} with {packethandler.GetType()}");
+            _log.Debug($"Handling packet for remote ip {remoteEndpoint.Address} with {packetHandler.GetType()}");
 
-            var sw = new Stopwatch();
-            sw.Start();
-            var responsePacket = packethandler.HandlePacket(requestPacket);
+            var sw = Stopwatch.StartNew();
+            var responsePacket = packetHandler.HandlePacket(requestPacket);
             sw.Stop();
-            _log.Debug($"{sender} Id={responsePacket.Identifier}, Received {responsePacket.Code} from handler in {sw.ElapsedMilliseconds}ms");
+            _log.Debug($"{remoteEndpoint} Id={responsePacket.Identifier}, Received {responsePacket.Code} from handler in {sw.ElapsedMilliseconds}ms");
             if (sw.ElapsedMilliseconds >= 5000)
             {
                 _log.Warn($"Slow response for Id {responsePacket.Identifier}, check logs");
@@ -233,13 +220,13 @@ namespace Flexinets.Radius
         /// <summary>
         /// Sends a packet
         /// </summary>
-        /// <param name="responsepacket"></param>
+        /// <param name="responsePacket"></param>
         /// <param name="sender"></param>
-        private void SendResponsePacket(IRadiusPacket responsepacket, IPEndPoint recipient, RadiusDictionary dictionary)
+        private void SendResponsePacket(IRadiusPacket responsePacket, IPEndPoint remoteEndpoint, RadiusDictionary dictionary)
         {
-            var responseBytes = GetBytes(responsepacket, dictionary);
-            _server.Send(responseBytes, responseBytes.Length, recipient);   // todo thread safety... although this implementation will be implicitly thread safeish...
-            _log.Info($"{responsepacket.Code} sent to {recipient} Id={responsepacket.Identifier}");
+            var responseBytes = GetBytes(responsePacket, dictionary);
+            _server.Send(responseBytes, responseBytes.Length, remoteEndpoint);   // todo thread safety... although this implementation will be implicitly thread safeish...
+            _log.Info($"{responsePacket.Code} sent to {remoteEndpoint} Id={responsePacket.Identifier}");
         }
 
 
@@ -261,16 +248,16 @@ namespace Flexinets.Radius
         /// Response authenticator = MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
         /// Actually this means it is the response packet with the request authenticator and secret...
         /// </summary>
-        /// <param name="radiusSharedSecret"></param>
+        /// <param name="sharedSecret"></param>
         /// <param name="requestAuthenticator"></param>
         /// <param name="packetBytes"></param>
         /// <returns>Response authenticator for the packet</returns>
-        private static Byte[] CreateResponseAuthenticator(Byte[] radiusSharedSecret, Byte[] requestAuthenticator, Byte[] packetBytes)
+        private static Byte[] CreateResponseAuthenticator(Byte[] sharedSecret, Byte[] requestAuthenticator, Byte[] packetBytes)
         {
-            var responseAuthenticator = new Byte[packetBytes.Length + radiusSharedSecret.Length];
+            var responseAuthenticator = new Byte[packetBytes.Length + sharedSecret.Length];
             Buffer.BlockCopy(packetBytes, 0, responseAuthenticator, 0, packetBytes.Length);
             Buffer.BlockCopy(requestAuthenticator, 0, responseAuthenticator, 4, 16);
-            Buffer.BlockCopy(radiusSharedSecret, 0, responseAuthenticator, packetBytes.Length, radiusSharedSecret.Length);
+            Buffer.BlockCopy(sharedSecret, 0, responseAuthenticator, packetBytes.Length, sharedSecret.Length);
 
             using (var md5 = MD5.Create())
             {
@@ -291,12 +278,12 @@ namespace Flexinets.Radius
         /// <summary>
         /// Log packet bytes for debugging
         /// </summary>
-        /// <param name="packetbytes"></param>
-        private static void DumpPacketBytes(Byte[] packetbytes)
+        /// <param name="packetBytes"></param>
+        private static void DumpPacketBytes(Byte[] packetBytes)
         {
             try
             {
-                _log.Debug(Utils.ByteArrayToString(packetbytes));
+                _log.Debug(Utils.ByteArrayToString(packetBytes));
             }
             catch (Exception)
             {
