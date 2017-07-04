@@ -106,7 +106,7 @@ namespace Flexinets.Radius
                     var response = await _server.ReceiveAsync();
                     Task.Factory.StartNew(() => { HandlePacket(response.RemoteEndPoint, response.Buffer); }, TaskCreationOptions.LongRunning);
                 }
-                catch (ObjectDisposedException) { }
+                catch (ObjectDisposedException) { } // This is thrown when udpclient is disposed, can be safely ignored
                 catch (Exception ex)
                 {
                     _log.Fatal("Something went wrong receiving packet", ex);
