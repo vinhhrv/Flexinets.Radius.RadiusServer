@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Flexinets.Radius
@@ -17,6 +18,7 @@ namespace Flexinets.Radius
         private readonly IPEndPoint _serverEndpoint;
         private readonly RadiusDictionary _dictionary;
         private readonly RadiusServerType _serverType;
+        private Int32 _concurrentHandlerCount = 0;
         private readonly Dictionary<IPAddress, (IPacketHandler packetHandler, String secret)> _packetHandlers = new Dictionary<IPAddress, (IPacketHandler, String)>();
 
         public Boolean Running
@@ -61,7 +63,7 @@ namespace Flexinets.Radius
             {
                 _server = new UdpClientWrapper(_serverEndpoint);
                 Running = true;
-                _log.Info($"Starting Radius server on {_serverEndpoint.Address}:{_serverEndpoint.Port}");
+                _log.Info($"Starting Radius server on {_serverEndpoint}");
                 var receiveTask = StartReceiveLoop();
                 _log.Info("Server started");
             }
@@ -102,8 +104,7 @@ namespace Flexinets.Radius
                 try
                 {
                     var response = await _server.ReceiveAsync();
-                    _log.Debug($"Received packet from {response.RemoteEndPoint.Address}:{response.RemoteEndPoint.Port}");
-                    Task.Run(() => { HandlePacket(response.RemoteEndPoint, response.Buffer); });
+                    Task.Factory.StartNew(() => { HandlePacket(response.RemoteEndPoint, response.Buffer); }, TaskCreationOptions.LongRunning);
                 }
                 catch (ObjectDisposedException) { }
                 catch (Exception ex)
@@ -121,7 +122,9 @@ namespace Flexinets.Radius
         private void HandlePacket(IPEndPoint sender, Byte[] packetbytes)
         {
             try
-            {
+            {                
+                _log.Debug($"Received packet from {sender}, Concurrent handlers count: {Interlocked.Increment(ref _concurrentHandlerCount)}");
+
                 if (_packetHandlers.TryGetValue(sender.Address, out var handler))
                 {
                     var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetbytes, sender);
@@ -132,20 +135,24 @@ namespace Flexinets.Radius
                 }
                 else
                 {
-                    _log.Error($"No packet handler found for remote ip {sender.Address}");
+                    _log.Error($"No packet handler found for remote ip {sender}");
                     var packet = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.UTF8.GetBytes("wut"));
                     DumpPacket(packet);
                 }
             }
             catch (Exception ex) when (ex is ArgumentException || ex is OverflowException)
             {
-                _log.Warn($"Ignoring malformed(?) packet received from {sender.Address}:{sender.Port}", ex);
+                _log.Warn($"Ignoring malformed(?) packet received from {sender}", ex);
                 DumpPacketBytes(packetbytes);
             }
             catch (Exception ex)
             {
-                _log.Error($"Failed to receive packet from {sender.Address}:{sender.Port}", ex);
+                _log.Error($"Failed to receive packet from {sender}", ex);
                 DumpPacketBytes(packetbytes);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _concurrentHandlerCount);
             }
         }
 
@@ -163,11 +170,11 @@ namespace Flexinets.Radius
             var requestPacket = RadiusPacket.ParseRawPacket(packetbytes, _dictionary, Encoding.UTF8.GetBytes(secret));
             if (requestPacket.Code == PacketCode.AccountingRequest)
             {
-                _log.Info($"Received {requestPacket.Code} {requestPacket.GetAttribute<AcctStatusType>("Acct-Status-Type")} from {sender.Address}:{sender.Port} Id={requestPacket.Identifier}");
+                _log.Info($"Received {requestPacket.Code} {requestPacket.GetAttribute<AcctStatusType>("Acct-Status-Type")} from {sender} Id={requestPacket.Identifier}");
             }
             else
             {
-                _log.Info($"Received {requestPacket.Code} from {sender.Address}:{sender.Port} Id={requestPacket.Identifier}");
+                _log.Info($"Received {requestPacket.Code} from {sender} Id={requestPacket.Identifier}");
             }
 
             if (_log.IsDebugEnabled)
@@ -182,7 +189,7 @@ namespace Flexinets.Radius
                 var calculatedMessageAuthenticator = RadiusPacket.CalculateMessageAuthenticator(requestPacket, _dictionary);
                 if (messageAuthenticator != calculatedMessageAuthenticator)
                 {
-                    _log.Warn($"Invalid Message-Authenticator in packet {requestPacket.Identifier} from {sender.Address}:{sender.Port}, check secret");
+                    _log.Warn($"Invalid Message-Authenticator in packet {requestPacket.Identifier} from {sender}, check secret");
                     return null;
                 }
             }
@@ -192,12 +199,12 @@ namespace Flexinets.Radius
             {
                 if (_serverType == RadiusServerType.Authentication)
                 {
-                    _log.Debug($"Sending AccessAccept for StatusServer request from {sender.Address}:{sender.Port}");
+                    _log.Debug($"Sending AccessAccept for StatusServer request from {sender}");
                     return requestPacket.CreateResponsePacket(PacketCode.AccessAccept);
                 }
                 else if (_serverType == RadiusServerType.Accounting)
                 {
-                    _log.Debug($"Sending AccountingResponse for StatusServer request from {sender.Address}:{sender.Port}");
+                    _log.Debug($"Sending AccountingResponse for StatusServer request from {sender}");
                     return requestPacket.CreateResponsePacket(PacketCode.AccountingResponse);
                 }
             }
@@ -208,7 +215,11 @@ namespace Flexinets.Radius
             sw.Start();
             var responsePacket = packethandler.HandlePacket(requestPacket);
             sw.Stop();
-            _log.Debug($"{sender.Address}:{sender.Port} Id={responsePacket.Identifier}, Received {responsePacket.Code} from handler in {sw.ElapsedMilliseconds}ms");
+            _log.Debug($"{sender} Id={responsePacket.Identifier}, Received {responsePacket.Code} from handler in {sw.ElapsedMilliseconds}ms");
+            if (sw.ElapsedMilliseconds >= 5000)
+            {
+                _log.Warn($"Slow response for Id {responsePacket.Identifier}, check logs");
+            }
 
             if (requestPacket.Attributes.ContainsKey("Proxy-State"))
             {
@@ -228,7 +239,7 @@ namespace Flexinets.Radius
         {
             var responseBytes = GetBytes(responsepacket, dictionary);
             _server.Send(responseBytes, responseBytes.Length, recipient);   // todo thread safety... although this implementation will be implicitly thread safeish...
-            _log.Info($"{responsepacket.Code} sent to {recipient.Address}:{recipient.Port} Id={responsepacket.Identifier}");
+            _log.Info($"{responsepacket.Code} sent to {recipient} Id={responsepacket.Identifier}");
         }
 
 
