@@ -35,7 +35,7 @@ namespace Flexinets.Radius
         /// </summary>
         /// <param name="bytes"></param>
         /// <returns></returns>
-        public static String GetMccMncFrom3GPPLocationInfo(Byte[] bytes)
+        public static (LocationType locationType, String mccmnc) GetMccMncFrom3GPPLocationInfo(Byte[] bytes)
         {
             String mccmnc = null;
             var type = (LocationType)bytes[0];  // hmm...
@@ -60,7 +60,7 @@ namespace Flexinets.Radius
                 _log.Error($"Unable to parse mccmnc from location attribute {ByteArrayToString(bytes)}");
             }
 
-            return mccmnc;
+            return (type, mccmnc);
         }
 
 

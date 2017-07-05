@@ -49,8 +49,8 @@ namespace Flexinets.Radius
         /// <param name="sharedSecret"></param>
         /// <param name="packetHandler"></param>
         public void AddPacketHandler(IPAddress remoteEndpoint, String sharedSecret, IPacketHandler packetHandler)
-        {
-            _log.Info($"Adding packet handler of type {packetHandler.GetType()} for remote IP {remoteEndpoint.ToString()}");
+        {            
+            _log.Info($"Adding packet handler of type {packetHandler.GetType()} for remote IP {remoteEndpoint.ToString()} to {_serverType}Server");
             _packetHandlers.Add(remoteEndpoint, (packetHandler, sharedSecret));
         }
 

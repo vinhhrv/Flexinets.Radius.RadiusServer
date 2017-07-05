@@ -197,9 +197,9 @@ namespace RadiusServerTests
             var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var locationInfo = requestPacket.GetAttribute<Byte[]>("3GPP-User-Location-Info");
 
-            Assert.AreEqual("23201", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo));
-            Assert.AreEqual("23430", Utils.GetMccMncFrom3GPPLocationInfo(Utils.StringToByteArray("0032f4030921b8e8")));
-            Assert.AreEqual("310170", Utils.GetMccMncFrom3GPPLocationInfo(Utils.StringToByteArray("001300710921b8e8")));
+            Assert.AreEqual("23201", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo).mccmnc);
+            Assert.AreEqual("23430", Utils.GetMccMncFrom3GPPLocationInfo(Utils.StringToByteArray("0032f4030921b8e8")).mccmnc);
+            Assert.AreEqual("310170", Utils.GetMccMncFrom3GPPLocationInfo(Utils.StringToByteArray("001300710921b8e8")).mccmnc);
         }
 
 
@@ -218,7 +218,7 @@ namespace RadiusServerTests
             var ltelocationid = Utils.StringToByteArray("8232f210426d32f21000013e02");
             var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var locationInfo = requestPacket.GetAttribute<Byte[]>("3GPP-User-Location-Info");
-            Assert.AreEqual("23201", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo));
+            Assert.AreEqual("23201", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo).mccmnc);
         }
 
 
@@ -237,7 +237,7 @@ namespace RadiusServerTests
             var ltelocationid = Utils.StringToByteArray("8232f210426d32f21000013e02");
             var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var locationInfo = requestPacket.GetAttribute<Byte[]>("3GPP-User-Location-Info");
-            Assert.AreEqual("23801", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo));
-        }
+            Assert.AreEqual("23801", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo).mccmnc);
+        }      
     }
 }
