@@ -129,6 +129,7 @@
     <Compile Include="Classes\AcctTerminateCause.cs" />
     <Compile Include="Classes\DictionaryVendorAttribute.cs" />
     <Compile Include="Classes\IUdpClientWrapper.cs" />
+    <Compile Include="Classes\RadiusClient.cs" />
     <Compile Include="Classes\RadiusDictionary.cs" />
     <Compile Include="Classes\DictionaryAttribute.cs" />
     <Compile Include="Classes\IPacketHandler.cs" />
@@ -144,6 +145,7 @@
     <Compile Include="Classes\RadiusServer.cs" />
     <Compile Include="Classes\Utils.cs" />
     <Compile Include="Tests\MockPacketHandler.cs" />
+    <Compile Include="Tests\RadiusClientTests.cs" />
     <Compile Include="Tests\RadiusServerTests.cs" />
     <Compile Include="Tests\TestPacketHandler.cs" />
   </ItemGroup>
