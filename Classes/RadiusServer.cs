@@ -15,7 +15,7 @@ namespace Flexinets.Radius
     {
         private static readonly ILog _log = LogManager.GetLogger(typeof(RadiusServer));
         private IUdpClientWrapper _server;
-        private readonly IPEndPoint _serverEndpoint;
+        private readonly IPEndPoint _localEndpoint;
         private readonly RadiusDictionary _dictionary;
         private readonly RadiusServerType _serverType;
         private Int32 _concurrentHandlerCount = 0;
@@ -36,7 +36,7 @@ namespace Flexinets.Radius
         /// <param name="serverType"></param>
         public RadiusServer(IPEndPoint localEndpoint, RadiusDictionary dictionary, RadiusServerType serverType)
         {
-            _serverEndpoint = localEndpoint;
+            _localEndpoint = localEndpoint;
             _dictionary = dictionary;
             _serverType = serverType;
         }
@@ -49,7 +49,7 @@ namespace Flexinets.Radius
         /// <param name="sharedSecret"></param>
         /// <param name="packetHandler"></param>
         public void AddPacketHandler(IPAddress remoteEndpoint, String sharedSecret, IPacketHandler packetHandler)
-        {            
+        {
             _log.Info($"Adding packet handler of type {packetHandler.GetType()} for remote IP {remoteEndpoint.ToString()} to {_serverType}Server");
             _packetHandlers.Add(remoteEndpoint, (packetHandler, sharedSecret));
         }
@@ -62,9 +62,9 @@ namespace Flexinets.Radius
         {
             if (!Running)
             {
-                _server = new UdpClientWrapper(_serverEndpoint);
+                _server = new UdpClientWrapper(_localEndpoint);
                 Running = true;
-                _log.Info($"Starting Radius server on {_serverEndpoint}");
+                _log.Info($"Starting Radius server on {_localEndpoint}");
                 var receiveTask = StartReceiveLoop();
                 _log.Info("Server started");
             }
@@ -124,7 +124,7 @@ namespace Flexinets.Radius
         private void HandlePacket(IPEndPoint remoteEndpoint, Byte[] packetBytes)
         {
             try
-            {                
+            {
                 _log.Debug($"Received packet from {remoteEndpoint}, Concurrent handlers count: {Interlocked.Increment(ref _concurrentHandlerCount)}");
 
                 if (_packetHandlers.TryGetValue(remoteEndpoint.Address, out var handler))
