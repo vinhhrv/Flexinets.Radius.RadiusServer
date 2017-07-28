@@ -28,13 +28,37 @@ namespace Flexinets.Radius
         public Byte[] Authenticator
         {
             get;
-            private set;
+            internal set;
         }
         public IDictionary<String, List<Object>> Attributes { get; set; } = new Dictionary<String, List<Object>>();
         public Byte[] SharedSecret
         {
             get;
             private set;
+        }
+
+
+        private RadiusPacket()
+        {
+        }
+
+
+        /// <summary>
+        /// Create a new packet
+        /// </summary>
+        /// <param name="code"></param>
+        /// <param name="identifier"></param>
+        /// <param name="secret"></param>
+        public RadiusPacket(PacketCode code, Byte identifier, String secret)
+        {
+            Code = code;
+            Identifier = identifier;
+            SharedSecret = Encoding.UTF8.GetBytes(secret);
+            Authenticator = new Byte[16];
+            using (var csp = RandomNumberGenerator.Create())
+            {
+                csp.GetNonZeroBytes(Authenticator);
+            }
         }
 
 
@@ -283,7 +307,7 @@ namespace Flexinets.Radius
         /// </summary>
         /// <returns></returns>
         public static String CalculateMessageAuthenticator(IRadiusPacket packet, RadiusDictionary dictionary)
-        {            
+        {
             var checkPacket = ParseRawPacket(packet.GetBytes(dictionary), dictionary, packet.SharedSecret);    // This is a bit daft, but we dont want side effects do we...
             checkPacket.Attributes["Message-Authenticator"][0] = new Byte[16];
 
@@ -320,6 +344,12 @@ namespace Flexinets.Radius
                     {
                         headerBytes = new Byte[2];
                         headerBytes[0] = attributeType.Value.Code;
+
+                        // Encrypt password if this is a User-Password attribute
+                        if (attributeType.Value.Code == 2)
+                        {
+                            contentBytes = RadiusPassword.Encrypt(SharedSecret, Authenticator, contentBytes);
+                        }
                     }
                     else
                     {

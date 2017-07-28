@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -26,14 +27,14 @@ namespace Flexinets.Radius
         /// <summary>
         /// Create a radius shared secret key
         /// </summary>
-        /// <param name="sharedsecret"></param>
+        /// <param name="sharedSecret"></param>
         /// <param name="Stuff"></param>
         /// <returns></returns>
-        private static Byte[] CreateKey(Byte[] sharedsecret, Byte[] authenticator)
+        private static Byte[] CreateKey(Byte[] sharedSecret, Byte[] authenticator)
         {
-            var key = new Byte[16 + sharedsecret.Length];
-            Buffer.BlockCopy(sharedsecret, 0, key, 0, sharedsecret.Length);
-            Buffer.BlockCopy(authenticator, 0, key, sharedsecret.Length, authenticator.Length);
+            var key = new Byte[16 + sharedSecret.Length];
+            Buffer.BlockCopy(sharedSecret, 0, key, 0, sharedSecret.Length);
+            Buffer.BlockCopy(authenticator, 0, key, sharedSecret.Length, authenticator.Length);
 
             using (var md5 = MD5.Create())
             {
@@ -45,24 +46,42 @@ namespace Flexinets.Radius
         /// <summary>
         /// Decrypt user password
         /// </summary>
-        /// <param name="radiusSharedSecret"></param>
+        /// <param name="sharedSecret"></param>
         /// <param name="authenticator"></param>
         /// <param name="passwordBytes"></param>
         /// <returns></returns>
-        public static String Decrypt(Byte[] radiusSharedSecret, Byte[] authenticator, Byte[] passwordBytes)
+        public static String Decrypt(Byte[] sharedSecret, Byte[] authenticator, Byte[] passwordBytes)
         {
             var sb = new StringBuilder();
-            var key = CreateKey(radiusSharedSecret, authenticator);
+            var key = CreateKey(sharedSecret, authenticator);
 
             for (var n = 1; n <= passwordBytes.Length / 16; n++)
             {
                 var temp = new Byte[16];
                 Buffer.BlockCopy(passwordBytes, (n - 1) * 16, temp, 0, 16);
                 sb.Append(Encoding.UTF8.GetString(EncryptDecrypt(temp, key)));
-                key = CreateKey(radiusSharedSecret, temp);
+                key = CreateKey(sharedSecret, temp);
             }
 
             return sb.ToString().Replace("\0", "");
+        }
+
+
+        public static Byte[] Encrypt(Byte[] sharedSecret, Byte[] authenticator, Byte[] passwordBytes)
+        {
+            Array.Resize(ref passwordBytes, passwordBytes.Length + (16 - (passwordBytes.Length % 16)));
+
+            var key = CreateKey(sharedSecret, authenticator);
+            var bytes = new List<Byte>();
+            for (var n = 1; n <= passwordBytes.Length / 16; n++)
+            {
+                var temp = new Byte[16];
+                Buffer.BlockCopy(passwordBytes, (n - 1) * 16, temp, 0, 16);
+                bytes.AddRange(EncryptDecrypt(temp, key));
+                key = CreateKey(sharedSecret, temp);
+            }
+
+            return bytes.ToArray();
         }
     }
 }
