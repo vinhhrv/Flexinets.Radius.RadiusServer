@@ -30,11 +30,7 @@ namespace Flexinets.Radius
             get;
             private set;
         }
-        public IDictionary<String, List<Object>> Attributes
-        {
-            get;
-            set;
-        }
+        public IDictionary<String, List<Object>> Attributes { get; set; } = new Dictionary<String, List<Object>>();
         public Byte[] SharedSecret
         {
             get;
@@ -201,7 +197,6 @@ namespace Flexinets.Radius
         {
             return new RadiusPacket
             {
-                Attributes = new Dictionary<String, List<object>>(),
                 Code = responseCode,
                 SharedSecret = SharedSecret,
                 Identifier = Identifier,
@@ -376,30 +371,25 @@ namespace Flexinets.Radius
         /// <returns></returns>
         private static Byte[] GetAttributeValueBytes(Object value)
         {
-            byte[] contentBytes;
-            if (value.GetType() == typeof(String))
+            switch (value)
             {
-                contentBytes = Encoding.Default.GetBytes((String)value);
-            }
-            else if (value.GetType() == typeof(UInt32))
-            {
-                contentBytes = BitConverter.GetBytes((UInt32)value);
-                Array.Reverse(contentBytes);
-            }
-            else if (value.GetType() == typeof(Byte[]))
-            {
-                contentBytes = (Byte[])value;
-            }
-            else if (value.GetType() == typeof(IPAddress))
-            {
-                contentBytes = ((IPAddress)value).GetAddressBytes();
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
+                case String _value:
+                    return Encoding.UTF8.GetBytes(_value);
 
-            return contentBytes;
+                case UInt32 _value:
+                    var contentBytes = BitConverter.GetBytes(_value);
+                    Array.Reverse(contentBytes);
+                    return contentBytes;
+
+                case Byte[] _value:
+                    return _value;
+
+                case IPAddress _value:
+                    return _value.GetAddressBytes();
+
+                default:
+                    throw new NotImplementedException();
+            }
         }
     }
 }
