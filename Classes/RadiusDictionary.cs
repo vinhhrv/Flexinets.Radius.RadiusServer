@@ -1,56 +1,65 @@
-﻿using System;
+﻿using log4net;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.IO;
-using log4net;
-using System.Text.RegularExpressions;
+using System.Linq;
 
 namespace Flexinets.Radius
 {
     public class RadiusDictionary
     {
         public Dictionary<Byte, DictionaryAttribute> Attributes { get; private set; } = new Dictionary<Byte, DictionaryAttribute>();
-        public List<DictionaryVendorAttribute> VendorAttributes { get; private set; } = new List<DictionaryVendorAttribute>();
+        public List<DictionaryVendorAttribute> VendorSpecificAttributes { get; private set; } = new List<DictionaryVendorAttribute>();
         private readonly ILog _log = LogManager.GetLogger(typeof(RadiusDictionary));
 
+
         /// <summary>
-        /// Load the dictionary, damn side effects...
-        /// </summary>        
-        public RadiusDictionary(String dictionaryPath)
+        /// Create a dictionary with predefined lists, for example from a database
+        /// </summary>
+        /// <param name="attributes"></param>
+        /// <param name="vendorSpecificAttributes"></param>
+        public RadiusDictionary(List<DictionaryAttribute> attributes, List<DictionaryVendorAttribute> vendorSpecificAttributes)
         {
-            using (var sr = new StreamReader(dictionaryPath))
+            Attributes = attributes.ToDictionary(o => o.Code);
+            VendorSpecificAttributes = vendorSpecificAttributes;
+        }
+
+
+        /// <summary>
+        /// Load the dictionary from a dictionary file
+        /// </summary>        
+        public RadiusDictionary(String dictionaryFilePath)
+        {
+            using (var sr = new StreamReader(dictionaryFilePath))
             {
                 while (sr.Peek() >= 0)
                 {
                     var line = sr.ReadLine();
-                    if (line.StartsWith("ATTRIBUTE"))
+                    if (line.StartsWith("Attribute"))
                     {
                         var lineparts = line.Split(new char[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                        var key = Convert.ToByte(lineparts[2]);
+                        var key = Convert.ToByte(lineparts[1]);
 
-                        // If duplicates are encountered, the last one will prevail
-                        // Same behaviour as Radiator
+                        // If duplicates are encountered, the last one will prevail                        
                         if (Attributes.ContainsKey(key))
                         {
                             Attributes.Remove(key);
                         }
-                        Attributes.Add(key, new DictionaryAttribute(lineparts[1], key, lineparts[3]));
+                        Attributes.Add(key, new DictionaryAttribute(lineparts[2], key, lineparts[3]));
                     }
 
-                    if (line.StartsWith("VENDORATTR"))
+                    if (line.StartsWith("VendorSpecificAttribute"))
                     {
                         var lineparts = line.Split(new char[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                        VendorAttributes.Add(new DictionaryVendorAttribute(
+                        VendorSpecificAttributes.Add(new DictionaryVendorAttribute(
                             Convert.ToUInt32(lineparts[1]),
-                            lineparts[2],
-                            Convert.ToUInt32(lineparts[3]),
+                            lineparts[3],
+                            Convert.ToUInt32(lineparts[2]),
                             lineparts[4]));
-
                     }
                 }
 
-                _log.InfoFormat($"Parsed {Attributes.Count} attributes and {VendorAttributes.Count} vendor attributes from file");
+                _log.InfoFormat($"Parsed {Attributes.Count} attributes and {VendorSpecificAttributes.Count} vendor attributes from file");
             }
         }
     }

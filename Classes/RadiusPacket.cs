@@ -110,7 +110,7 @@ namespace Flexinets.Radius
                     if (typecode == 26)
                     {
                         var vsa = new VendorSpecificAttribute(contentBytes);
-                        var attributeDefinition = dictionary.VendorAttributes.FirstOrDefault(o => o.VendorId == vsa.VendorId && o.Code == vsa.VendorCode);
+                        var attributeDefinition = dictionary.VendorSpecificAttributes.FirstOrDefault(o => o.VendorId == vsa.VendorId && o.Code == vsa.VendorCode);
                         if (attributeDefinition == null)
                         {
                             _log.Debug($"Unknown vsa: {vsa.VendorId}:{vsa.VendorCode}");
@@ -185,7 +185,7 @@ namespace Flexinets.Radius
                 case "tagged-string":
                     return Encoding.UTF8.GetString(contentBytes);
 
-                case "binary":
+                case "octet":
                     // If this is a password attribute it must be decrypted
                     if (code == 2)
                     {
@@ -354,7 +354,7 @@ namespace Flexinets.Radius
                     else
                     {
                         // Maybe this is a vendor attribute?
-                        var vendorAttributeType = dictionary.VendorAttributes.SingleOrDefault(o => o.Name == attribute.Key);
+                        var vendorAttributeType = dictionary.VendorSpecificAttributes.SingleOrDefault(o => o.Name == attribute.Key);
                         if (vendorAttributeType != null)
                         {
                             headerBytes = new Byte[8];
