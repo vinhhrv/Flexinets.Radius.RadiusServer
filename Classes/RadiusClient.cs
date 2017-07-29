@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,7 +10,6 @@ namespace Flexinets.Radius
     {
         private readonly UdpClient _udpClient;
         private readonly RadiusDictionary _dictionary;
-        private readonly List<Task<IRadiusPacket>> _tasks = new List<Task<IRadiusPacket>>();
 
         public RadiusClient(IPEndPoint localEndpoint, RadiusDictionary dictionary)
         {
@@ -22,19 +18,38 @@ namespace Flexinets.Radius
         }
 
 
-        public async Task<IRadiusPacket> SendPacket(IRadiusPacket packet, IPEndPoint remoteEndpoint)
+        /// <summary>
+        /// Send a packet with specified timeout
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <param name="remoteEndpoint"></param>
+        /// <param name="timeout"></param>
+        /// <returns></returns>
+        public async Task<IRadiusPacket> SendPacketAsync(IRadiusPacket packet, IPEndPoint remoteEndpoint, TimeSpan timeout)
         {
             var packetBytes = packet.GetBytes(_dictionary);
 
             await _udpClient.SendAsync(packetBytes, packetBytes.Length, remoteEndpoint);
             Task.Run(() =>
             {
-                Thread.Sleep(1000);
+                Thread.Sleep(timeout);
                 _udpClient.Close();
             });
+            // todo use events to create a common udpclient for multiple packets to enable sending and receiving without blocking
             var response = await _udpClient.ReceiveAsync();
+            return RadiusPacket.ParseRawPacket(response.Buffer, _dictionary, packet.SharedSecret);
+        }
 
-            return RadiusPacket.ParseRawPacket(response.Buffer, _dictionary, Encoding.UTF8.GetBytes("secret"));
+
+        /// <summary>
+        /// Send a packet with default timeout of 3 seconds
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <param name="remoteEndpoint"></param>
+        /// <returns></returns>
+        public async Task<IRadiusPacket> SendPacketAsync(IRadiusPacket packet, IPEndPoint remoteEndpoint)
+        {
+            return await SendPacketAsync(packet, remoteEndpoint, TimeSpan.FromSeconds(3));
         }
     }
 }
