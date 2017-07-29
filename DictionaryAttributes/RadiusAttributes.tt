@@ -1,0 +1,56 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="$(SolutionDir)\RadiusServer\bin\Release\RadiusServer.Dll" #>  
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="Flexinets.Radius" #>
+<#@ output extension=".cs" #>
+using System;  
+using System.Net;
+
+namespace Flexinets.Radius.DictionaryAttributes 
+{
+	<#  	 
+	var path = @"c:\users\verne\desktop\dictionary";
+	var dictionary = new RadiusDictionary(path);
+	 foreach (var attr in dictionary.Attributes)  
+	 {  
+	#>  <# if (attr.Value.Type == "string") { #>
+	  public partial class <#= attr.Value.Name.Replace("-", "") #>Attribute : StringAttribute
+	  {
+		public const UInt32 Code = <#= attr.Value.Code #>;
+		public <#= attr.Value.Name.Replace("-", "") #>Attribute (String value)
+		{
+			Value = value;
+		}
+	  }  <# } #>
+	  <# if (attr.Value.Type == "integer") { #>
+	  public partial class <#= attr.Value.Name.Replace("-", "") #>Attribute : IntegerAttribute
+	  {
+		public const UInt32 Code = <#= attr.Value.Code #>;
+		public <#= attr.Value.Name.Replace("-", "") #>Attribute (UInt32 value)
+		{
+			Value = value;
+		}
+	  }  <# } #>
+	  <# if (attr.Value.Type == "octet") { #>
+	  public partial class <#= attr.Value.Name.Replace("-", "") #>Attribute : OctetAttribute
+	  {
+		public const UInt32 Code = <#= attr.Value.Code #>;
+		public <#= attr.Value.Name.Replace("-", "") #>Attribute (Byte[] value)
+		{
+			Value = value;
+		}
+	  }  <# } #>
+	   <# if (attr.Value.Type == "ipaddr") { #>
+	  public partial class <#= attr.Value.Name.Replace("-", "") #>Attribute : IPAddressAttribute
+	  {
+		public const UInt32 Code = <#= attr.Value.Code #>;
+		public <#= attr.Value.Name.Replace("-", "") #>Attribute (IPAddress value)
+		{
+			Value = value;
+		}
+	  }  <# } #>
+	<# 	 }  	#>  
+}

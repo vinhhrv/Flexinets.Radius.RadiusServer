@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Flexinets.Radius.DictionaryAttributes;
+using System;
 using System.Collections.Generic;
 using System.Net;
 
@@ -24,17 +25,15 @@ namespace Flexinets.Radius
         }
         IRadiusPacket CreateResponsePacket(PacketCode responseCode);
 
-        T GetAttribute<T>(String name);
 
-        void AddAttribute(String name, String value);
-        void AddAttribute(String name, UInt32 value);
-        void AddAttribute(String name, IPAddress value);
-        void AddAttribute(String name, Byte[] value);
+        Dictionary<Type, List<IAttribute>> TypedAttributes { get; };
 
-        IDictionary<String, List<Object>> Attributes
-        {
-            get;
-        }
+        T GetTypedAttribute<T>() where T : IAttribute;
+        List<T> GetTypedAttributes<T>() where T : IAttribute;
+
+        void AddTypedAttribute(IAttribute attribute);
+
+
         Byte[] GetBytes(RadiusDictionary dictionary);
     }
 }

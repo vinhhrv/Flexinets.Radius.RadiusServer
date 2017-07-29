@@ -1,4 +1,5 @@
-﻿using log4net;
+﻿using Flexinets.Radius.DictionaryAttributes;
+using log4net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,12 +31,12 @@ namespace Flexinets.Radius
             get;
             internal set;
         }
-        public IDictionary<String, List<Object>> Attributes { get; set; } = new Dictionary<String, List<Object>>();
         public Byte[] SharedSecret
         {
             get;
             private set;
         }
+        public Dictionary<Type, List<IAttribute>> TypedAttributes { get; private set; } = new Dictionary<Type, List<IAttribute>>();
 
 
         private RadiusPacket()
@@ -83,7 +84,6 @@ namespace Flexinets.Radius
             var radiusPacket = new RadiusPacket
             {
                 SharedSecret = sharedSecret,
-                Attributes = new Dictionary<String, List<object>>(),
                 Identifier = packetBytes[1],
                 Code = (PacketCode)packetBytes[0],
                 Authenticator = new Byte[16]
@@ -109,28 +109,28 @@ namespace Flexinets.Radius
                 {
                     if (typecode == 26)
                     {
-                        var vsa = new VendorSpecificAttribute(contentBytes);
-                        var attributeDefinition = dictionary.VendorSpecificAttributes.FirstOrDefault(o => o.VendorId == vsa.VendorId && o.Code == vsa.VendorCode);
-                        if (attributeDefinition == null)
-                        {
-                            _log.Debug($"Unknown vsa: {vsa.VendorId}:{vsa.VendorCode}");
-                        }
-                        else
-                        {
-                            try
-                            {
-                                var content = ParseContentBytes(vsa.Value, attributeDefinition.Type, typecode, radiusPacket.Authenticator, radiusPacket.SharedSecret);
-                                if (!radiusPacket.Attributes.ContainsKey(attributeDefinition.Name))
-                                {
-                                    radiusPacket.Attributes.Add(attributeDefinition.Name, new List<object>());
-                                }
-                                radiusPacket.Attributes[attributeDefinition.Name].Add(content);
-                            }
-                            catch (Exception ex)
-                            {
-                                _log.Error($"Something went wrong with vsa {attributeDefinition.Name}", ex);
-                            }
-                        }
+                        //var vsa = new VendorSpecificAttribute(contentBytes);
+                        //var attributeDefinition = dictionary.VendorSpecificAttributes.FirstOrDefault(o => o.VendorId == vsa.VendorId && o.Code == vsa.VendorCode);
+                        //if (attributeDefinition == null)
+                        //{
+                        //    _log.Debug($"Unknown vsa: {vsa.VendorId}:{vsa.VendorCode}");
+                        //}
+                        //else
+                        //{
+                        //    try
+                        //    {
+                        //        var content = ParseContentBytes(vsa.Value, attributeDefinition.Type, typecode, radiusPacket.Authenticator, radiusPacket.SharedSecret);
+                        //        if (!radiusPacket.Attributes.ContainsKey(attributeDefinition.Name))
+                        //        {
+                        //            radiusPacket.Attributes.Add(attributeDefinition.Name, new List<object>());
+                        //        }
+                        //        radiusPacket.Attributes[attributeDefinition.Name].Add(content);
+                        //    }
+                        //    catch (Exception ex)
+                        //    {
+                        //        _log.Error($"Something went wrong with vsa {attributeDefinition.Name}", ex);
+                        //    }
+                        //}
                     }
                     else
                     {
@@ -230,74 +230,6 @@ namespace Flexinets.Radius
 
 
         /// <summary>
-        /// Gets a single attribute value with name cast to type
-        /// Throws an exception if multiple attributes with the same name are found
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        public T GetAttribute<T>(String name)
-        {
-            if (Attributes.ContainsKey(name))
-            {
-                return (T)Attributes[name].Single();
-            }
-
-            return default(T);
-        }
-
-
-        /// <summary>
-        /// Gets multiple attribute values with the same name cast to type
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        public List<T> GetAttributes<T>(String name)
-        {
-            if (Attributes.ContainsKey(name))
-            {
-                return Attributes[name].Cast<T>().ToList();
-            }
-            return new List<T>();
-        }
-
-
-
-
-        /// <summary>
-        /// Add attribute to packet
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="value"></param>
-        public void AddAttribute(String name, String value)
-        {
-            AddAttributeObject(name, value);
-        }
-        public void AddAttribute(String name, UInt32 value)
-        {
-            AddAttributeObject(name, value);
-        }
-        public void AddAttribute(String name, IPAddress value)
-        {
-            AddAttributeObject(name, value);
-        }
-        public void AddAttribute(String name, Byte[] value)
-        {
-            AddAttributeObject(name, value);
-        }
-
-        private void AddAttributeObject(string name, object value)
-        {
-            if (!Attributes.ContainsKey(name))
-            {
-                Attributes.Add(name, new List<object>());
-            }
-            Attributes[name].Add(value);
-        }
-
-
-        /// <summary>
         /// Validates a message authenticator if one exists in the packet
         /// Message-Authenticator = HMAC-MD5 (Type, Identifier, Length, Request Authenticator, Attributes)
         /// The HMAC-MD5 function takes in two arguments:
@@ -309,8 +241,8 @@ namespace Flexinets.Radius
         public static String CalculateMessageAuthenticator(IRadiusPacket packet, RadiusDictionary dictionary)
         {
             var checkPacket = ParseRawPacket(packet.GetBytes(dictionary), dictionary, packet.SharedSecret);    // This is a bit daft, but we dont want side effects do we...
-            checkPacket.Attributes["Message-Authenticator"][0] = new Byte[16];
-
+            //checkPacket.GetTypedAttribute<MessageAuthenticatorAttribute>().Value = new Byte[16];
+            // todo fix
             var bytes = checkPacket.GetBytes(dictionary);
 
             using (var md5 = new HMACMD5(checkPacket.SharedSecret))
@@ -330,47 +262,40 @@ namespace Flexinets.Radius
             packetbytes[0] = (Byte)Code;
             packetbytes[1] = Identifier;
 
-            foreach (var attribute in Attributes)
+            foreach (var attributes in TypedAttributes)
             {
-                // todo add logic to check attribute object type matches type in dictionary?
-                foreach (var value in attribute.Value)
+                foreach (var attribute in attributes.Value)
                 {
-                    var contentBytes = GetAttributeValueBytes(value);
-                    var headerBytes = new Byte[0];
+                    var contentBytes = attribute.GetBytes();
+                    var headerBytes = new Byte[2];
+                    headerBytes[0] = (Byte)attribute.Code;
 
-                    // Figure out what kind of attribute this is
-                    var attributeType = dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
-                    if (dictionary.Attributes.ContainsValue(attributeType.Value))
+                    if (attribute.Code == 2)
                     {
-                        headerBytes = new Byte[2];
-                        headerBytes[0] = attributeType.Value.Code;
-
-                        // Encrypt password if this is a User-Password attribute
-                        if (attributeType.Value.Code == 2)
-                        {
-                            contentBytes = RadiusPassword.Encrypt(SharedSecret, Authenticator, contentBytes);
-                        }
+                        contentBytes = RadiusPassword.Encrypt(SharedSecret, Authenticator, contentBytes);
                     }
-                    else
-                    {
-                        // Maybe this is a vendor attribute?
-                        var vendorAttributeType = dictionary.VendorSpecificAttributes.SingleOrDefault(o => o.Name == attribute.Key);
-                        if (vendorAttributeType != null)
-                        {
-                            headerBytes = new Byte[8];
-                            headerBytes[0] = 26; // VSA type
 
-                            var vendorId = BitConverter.GetBytes(vendorAttributeType.VendorId);
-                            Array.Reverse(vendorId);
-                            Buffer.BlockCopy(vendorId, 0, headerBytes, 2, 4);
-                            headerBytes[6] = (Byte)vendorAttributeType.Code;
-                            headerBytes[7] = (Byte)(2 + contentBytes.Length);  // length of the vsa part
-                        }
-                        else
-                        {
-                            _log.Debug($"Ignoring unknown attribute {attribute.Key}");
-                        }
-                    }
+
+                    //else
+                    //{
+                    //    // Maybe this is a vendor attribute?
+                    //    var vendorAttributeType = dictionary.VendorSpecificAttributes.SingleOrDefault(o => o.Name == attribute.Key);
+                    //    if (vendorAttributeType != null)
+                    //    {
+                    //        headerBytes = new Byte[8];
+                    //        headerBytes[0] = 26; // VSA type
+
+                    //        var vendorId = BitConverter.GetBytes(vendorAttributeType.VendorId);
+                    //        Array.Reverse(vendorId);
+                    //        Buffer.BlockCopy(vendorId, 0, headerBytes, 2, 4);
+                    //        headerBytes[6] = (Byte)vendorAttributeType.Code;
+                    //        headerBytes[7] = (Byte)(2 + contentBytes.Length);  // length of the vsa part
+                    //    }
+                    //    else
+                    //    {
+                    //        _log.Debug($"Ignoring unknown attribute {attribute.Key}");
+                    //    }
+                    //}
 
                     var attributeBytes = new Byte[headerBytes.Length + contentBytes.Length];
                     Buffer.BlockCopy(headerBytes, 0, attributeBytes, 0, headerBytes.Length);
@@ -394,32 +319,33 @@ namespace Flexinets.Radius
         }
 
 
-        /// <summary>
-        /// Gets the byte representation of an attribute object
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        private static Byte[] GetAttributeValueBytes(Object value)
+
+
+        public T GetTypedAttribute<T>() where T : IAttribute
         {
-            switch (value)
+            if (TypedAttributes.ContainsKey(typeof(T)))
             {
-                case String _value:
-                    return Encoding.UTF8.GetBytes(_value);
-
-                case UInt32 _value:
-                    var contentBytes = BitConverter.GetBytes(_value);
-                    Array.Reverse(contentBytes);
-                    return contentBytes;
-
-                case Byte[] _value:
-                    return _value;
-
-                case IPAddress _value:
-                    return _value.GetAddressBytes();
-
-                default:
-                    throw new NotImplementedException();
+                return (T)TypedAttributes[typeof(T)].First();
             }
+            return default(T);
+        }
+
+        public List<T> GetTypedAttributes<T>() where T : IAttribute
+        {
+            if (TypedAttributes.ContainsKey(typeof(T)))
+            {
+                return TypedAttributes[typeof(T)].Cast<T>().ToList();
+            }
+            return default(List<T>);
+        }
+
+        public void AddTypedAttribute(IAttribute attribute)
+        {
+            if (!TypedAttributes.ContainsKey(attribute.GetType()))
+            {
+                TypedAttributes.Add(attribute.GetType(), new List<IAttribute>());
+            }
+            TypedAttributes[attribute.GetType()].Add(attribute);
         }
     }
 }

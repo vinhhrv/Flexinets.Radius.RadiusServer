@@ -6,6 +6,7 @@ using System.Net;
 using System.IO;
 using System.Reflection;
 using System.Collections;
+using Flexinets.Radius.DictionaryAttributes;
 
 namespace RadiusServerTests
 {
@@ -238,6 +239,29 @@ namespace RadiusServerTests
             var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var locationInfo = requestPacket.GetAttribute<Byte[]>("3GPP-User-Location-Info");
             Assert.AreEqual("23801", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo).mccmnc);
-        }      
+        }
+
+
+
+        /// <summary>
+        /// Test location info in accounting packet
+        /// </summary>
+        [TestMethod]
+        public void TestTypedAttributes()
+        {
+            var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
+            var dictionary = new RadiusDictionary(path);
+            var username = "user@example.com";
+            var ipAddress = IPAddress.Parse("127.0.0.1");
+            var packet = new RadiusPacket(PacketCode.AccessRequest, 1, "test");
+            packet.AddTypedAttribute(new UserNameAttribute(username));
+            packet.AddTypedAttribute(new FramedIPAddressAttribute(ipAddress));
+
+            var usernameAttribute = packet.GetTypedAttribute<UserNameAttribute>();
+            Assert.AreEqual(username, usernameAttribute.Value);
+
+            var ipAddressAttribute = packet.GetTypedAttribute<FramedIPAddressAttribute>();
+            Assert.AreEqual(ipAddress, ipAddressAttribute.Value);
+        }
     }
 }

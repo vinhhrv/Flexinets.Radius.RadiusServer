@@ -1,4 +1,5 @@
-﻿using log4net;
+﻿using Flexinets.Radius.DictionaryAttributes;
+using log4net;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -178,9 +179,10 @@ namespace Flexinets.Radius
                 DumpPacketBytes(packetBytes);
             }
 
-            if (requestPacket.Attributes.ContainsKey("Message-Authenticator"))
+            var messageAuthenticatorAttribute = requestPacket.GetTypedAttribute<MessageAuthenticatorAttribute>();
+            if (messageAuthenticatorAttribute != null)
             {
-                var messageAuthenticator = Utils.ByteArrayToString(requestPacket.GetAttribute<Byte[]>("Message-Authenticator"));
+                var messageAuthenticator = Utils.ByteArrayToString(messageAuthenticatorAttribute.Value);
                 var calculatedMessageAuthenticator = RadiusPacket.CalculateMessageAuthenticator(requestPacket, _dictionary);
                 if (messageAuthenticator != calculatedMessageAuthenticator)
                 {
@@ -208,9 +210,10 @@ namespace Flexinets.Radius
                 _log.Warn($"Slow response for Id {responsePacket.Identifier}, check logs");
             }
 
-            if (requestPacket.Attributes.ContainsKey("Proxy-State"))
+            var proxyStateAttributes = requestPacket.GetTypedAttributes<ProxyStateAttribute>();
+            if (proxyStateAttributes != null)
             {
-                responsePacket.Attributes.Add("Proxy-State", requestPacket.Attributes.SingleOrDefault(o => o.Key == "Proxy-State").Value);
+                proxyStateAttributes.ForEach(o => responsePacket.AddTypedAttribute(o));
             }
 
             return responsePacket;
@@ -300,15 +303,15 @@ namespace Flexinets.Radius
         {
             var sb = new StringBuilder();
             sb.AppendLine($"Packet dump for {packet.Identifier}:");
-            foreach (var attribute in packet.Attributes)
+            foreach (var attribute in packet.TypedAttributes)
             {
-                if (attribute.Key == "User-Password")
+                if (attribute.Key == typeof(UserPasswordAttribute))
                 {
                     sb.AppendLine($"{attribute.Key} length : {attribute.Value.First().ToString().Length}");
                 }
                 else
                 {
-                    attribute.Value.ForEach(o => sb.AppendLine($"{attribute.Key} : {o} [{o.GetType()}]"));
+                    attribute.Value.ForEach(o => sb.AppendLine($"{attribute.Key}"));
                 }
             }
             _log.Debug(sb.ToString());
