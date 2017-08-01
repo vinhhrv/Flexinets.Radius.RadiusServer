@@ -83,7 +83,6 @@ namespace Flexinets.Radius
             var radiusPacket = new RadiusPacket
             {
                 SharedSecret = sharedSecret,
-                Attributes = new Dictionary<String, List<object>>(),
                 Identifier = packetBytes[1],
                 Code = (PacketCode)packetBytes[0],
                 Authenticator = new Byte[16]
