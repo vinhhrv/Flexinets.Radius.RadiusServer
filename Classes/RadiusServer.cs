@@ -213,6 +213,8 @@ namespace Flexinets.Radius
                 responsePacket.Attributes.Add("Proxy-State", requestPacket.Attributes.SingleOrDefault(o => o.Key == "Proxy-State").Value);
             }
 
+            //responsePacket.au
+
             return responsePacket;
         }
 
@@ -225,47 +227,9 @@ namespace Flexinets.Radius
         /// <param name="dictionary"></param>
         private void SendResponsePacket(IRadiusPacket responsePacket, IPEndPoint remoteEndpoint, RadiusDictionary dictionary)
         {
-            var responseBytes = GetBytesWithResponseAuthenticator(responsePacket, dictionary);
+            var responseBytes = responsePacket.GetBytes(dictionary);
             _server.Send(responseBytes, responseBytes.Length, remoteEndpoint);   // todo thread safety... although this implementation will be implicitly thread safeish...
             _log.Info($"{responsePacket.Code} sent to {remoteEndpoint} Id={responsePacket.Identifier}");
-        }
-
-
-        /// <summary>
-        /// Get the raw packet bytes with calculated response authenticator
-        /// </summary>
-        /// <param name="packet"></param>
-        /// <param name="dictionary"></param>
-        /// <returns></returns>
-        public static Byte[] GetBytesWithResponseAuthenticator(IRadiusPacket packet, RadiusDictionary dictionary)
-        {
-            var packetBytes = packet.GetBytes(dictionary);
-            var responseAuthenticator = CreateResponseAuthenticator(packet.SharedSecret, packet.Authenticator, packetBytes);
-            Buffer.BlockCopy(responseAuthenticator, 0, packetBytes, 4, 16);
-            return packetBytes;
-        }
-
-
-        /// <summary>
-        /// Creates a response authenticator
-        /// Response authenticator = MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
-        /// Actually this means it is the response packet with the request authenticator and secret...
-        /// </summary>
-        /// <param name="sharedSecret"></param>
-        /// <param name="requestAuthenticator"></param>
-        /// <param name="packetBytes"></param>
-        /// <returns>Response authenticator for the packet</returns>
-        private static Byte[] CreateResponseAuthenticator(Byte[] sharedSecret, Byte[] requestAuthenticator, Byte[] packetBytes)
-        {
-            var responseAuthenticator = new Byte[packetBytes.Length + sharedSecret.Length];
-            Buffer.BlockCopy(packetBytes, 0, responseAuthenticator, 0, packetBytes.Length);
-            Buffer.BlockCopy(requestAuthenticator, 0, responseAuthenticator, 4, 16);
-            Buffer.BlockCopy(sharedSecret, 0, responseAuthenticator, packetBytes.Length, sharedSecret.Length);
-
-            using (var md5 = MD5.Create())
-            {
-                return md5.ComputeHash(responseAuthenticator);
-            }
         }
 
 

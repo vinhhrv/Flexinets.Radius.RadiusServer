@@ -36,6 +36,7 @@ namespace Flexinets.Radius
             get;
             private set;
         }
+        private Byte[] _requestAuthenticator;
 
 
         private RadiusPacket()
@@ -44,7 +45,7 @@ namespace Flexinets.Radius
 
 
         /// <summary>
-        /// Create a new packet
+        /// Create a new packet with a random authenticator
         /// </summary>
         /// <param name="code"></param>
         /// <param name="identifier"></param>
@@ -211,7 +212,7 @@ namespace Flexinets.Radius
                 Code = responseCode,
                 SharedSecret = SharedSecret,
                 Identifier = Identifier,
-                Authenticator = Authenticator,
+                _requestAuthenticator = Authenticator
             };
         }
 
@@ -250,11 +251,6 @@ namespace Flexinets.Radius
         }
 
 
-        /// <summary>
-        /// Add attribute to packet
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="value"></param>
         public void AddAttribute(String name, String value)
         {
             AddAttributeObject(name, value);
@@ -373,7 +369,16 @@ namespace Flexinets.Radius
             packetbytes[2] = responselengthbytes[1];
             packetbytes[3] = responselengthbytes[0];
 
-            Buffer.BlockCopy(Authenticator, 0, packetbytes, 4, 16);
+            // If the packet is a response, calculate and set the response authenticator
+            if (_requestAuthenticator != null)
+            {
+                var responseAuthenticator = CalculateResponseAuthenticator(SharedSecret, _requestAuthenticator, packetbytes);
+                Buffer.BlockCopy(responseAuthenticator, 0, packetbytes, 4, 16);
+            }
+            else
+            {
+                Buffer.BlockCopy(Authenticator, 0, packetbytes, 4, 16);
+            }
 
             return packetbytes;
         }
@@ -404,6 +409,29 @@ namespace Flexinets.Radius
 
                 default:
                     throw new NotImplementedException();
+            }
+        }
+
+
+        /// <summary>
+        /// Creates a response authenticator
+        /// Response authenticator = MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
+        /// Actually this means it is the response packet with the request authenticator and secret...
+        /// </summary>
+        /// <param name="sharedSecret"></param>
+        /// <param name="requestAuthenticator"></param>
+        /// <param name="packetBytes"></param>
+        /// <returns>Response authenticator for the packet</returns>
+        private static Byte[] CalculateResponseAuthenticator(Byte[] sharedSecret, Byte[] requestAuthenticator, Byte[] packetBytes)
+        {
+            var responseAuthenticator = new Byte[packetBytes.Length + sharedSecret.Length];
+            Buffer.BlockCopy(packetBytes, 0, responseAuthenticator, 0, packetBytes.Length);
+            Buffer.BlockCopy(requestAuthenticator, 0, responseAuthenticator, 4, 16);
+            Buffer.BlockCopy(sharedSecret, 0, responseAuthenticator, packetBytes.Length, sharedSecret.Length);
+
+            using (var md5 = MD5.Create())
+            {
+                return md5.ComputeHash(responseAuthenticator);
             }
         }
     }

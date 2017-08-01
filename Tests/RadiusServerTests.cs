@@ -28,9 +28,8 @@ namespace RadiusServerTests
 
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
-            var responseBytes = RadiusServer.GetBytesWithResponseAuthenticator(response, dictionary);
 
-            Assert.AreEqual(expected, Utils.ByteArrayToString(responseBytes));
+            Assert.AreEqual(expected, Utils.ByteArrayToString(response.GetBytes(dictionary)));
         }
 
 
@@ -50,9 +49,8 @@ namespace RadiusServerTests
 
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
-            var responseBytes = RadiusServer.GetBytesWithResponseAuthenticator(response, dictionary);
 
-            Assert.AreEqual(expected, Utils.ByteArrayToString(responseBytes));
+            Assert.AreEqual(expected, Utils.ByteArrayToString(response.GetBytes(dictionary)));
         }
 
 
@@ -72,9 +70,8 @@ namespace RadiusServerTests
 
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Accounting);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
-            var responseBytes = RadiusServer.GetBytesWithResponseAuthenticator(response, dictionary);
 
-            Assert.AreEqual(expected, Utils.ByteArrayToString(responseBytes));
+            Assert.AreEqual(expected, Utils.ByteArrayToString(response.GetBytes(dictionary)));
         }
 
 
@@ -95,9 +92,8 @@ namespace RadiusServerTests
 
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
-            var responseBytes = RadiusServer.GetBytesWithResponseAuthenticator(response, dictionary);
 
-            Assert.AreEqual(expected, Utils.ByteArrayToString(responseBytes));
+            Assert.AreEqual(expected, Utils.ByteArrayToString(response.GetBytes(dictionary)));
         }
 
 
@@ -118,9 +114,8 @@ namespace RadiusServerTests
 
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
-            var responseBytes = RadiusServer.GetBytesWithResponseAuthenticator(response, dictionary);
 
-            Assert.AreEqual(expected, Utils.ByteArrayToString(responseBytes));
+            Assert.AreEqual(expected, Utils.ByteArrayToString(response.GetBytes(dictionary)));
         }
 
 
