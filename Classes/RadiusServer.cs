@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -180,9 +179,9 @@ namespace Flexinets.Radius
 
             if (requestPacket.Attributes.ContainsKey("Message-Authenticator"))
             {
-                var messageAuthenticator = Utils.ByteArrayToString(requestPacket.GetAttribute<Byte[]>("Message-Authenticator"));
+                var messageAuthenticator = requestPacket.GetAttribute<Byte[]>("Message-Authenticator");
                 var calculatedMessageAuthenticator = RadiusPacket.CalculateMessageAuthenticator(requestPacket, _dictionary);
-                if (messageAuthenticator != calculatedMessageAuthenticator)
+                if (!messageAuthenticator.SequenceEqual(calculatedMessageAuthenticator))
                 {
                     _log.Warn($"Invalid Message-Authenticator in packet {requestPacket.Identifier} from {remoteEndpoint}, check secret");
                     return null;

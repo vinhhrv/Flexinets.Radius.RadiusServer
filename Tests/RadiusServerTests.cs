@@ -153,7 +153,7 @@ namespace RadiusServerTests
             var dictionary = new RadiusDictionary(path);
 
             var requestPacket = RadiusPacket.Parse(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
-            var calculatedMessageAuthenticator = RadiusPacket.CalculateMessageAuthenticator(requestPacket, dictionary);
+            var calculatedMessageAuthenticator = Utils.ByteArrayToString(RadiusPacket.CalculateMessageAuthenticator(requestPacket, dictionary));
             Assert.AreEqual(expected, calculatedMessageAuthenticator);
         }
 
@@ -233,6 +233,6 @@ namespace RadiusServerTests
             var requestPacket = RadiusPacket.Parse(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var locationInfo = requestPacket.GetAttribute<Byte[]>("3GPP-User-Location-Info");
             Assert.AreEqual("23801", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo).mccmnc);
-        }      
+        }
     }
 }

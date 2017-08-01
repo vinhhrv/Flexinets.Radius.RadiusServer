@@ -287,7 +287,7 @@ namespace Flexinets.Radius
         /// https://www.ietf.org/rfc/rfc2869.txt
         /// </summary>
         /// <returns></returns>
-        public static String CalculateMessageAuthenticator(IRadiusPacket packet, RadiusDictionary dictionary)
+        public static Byte[] CalculateMessageAuthenticator(IRadiusPacket packet, RadiusDictionary dictionary)
         {
             var checkPacket = Parse(packet.GetBytes(dictionary), dictionary, packet.SharedSecret);    // This is a bit daft, but we dont want side effects do we...
             checkPacket.Attributes["Message-Authenticator"][0] = new Byte[16];
@@ -296,7 +296,7 @@ namespace Flexinets.Radius
 
             using (var md5 = new HMACMD5(checkPacket.SharedSecret))
             {
-                return Utils.ByteArrayToString(md5.ComputeHash(bytes));
+                return md5.ComputeHash(bytes);
             }
         }
 
