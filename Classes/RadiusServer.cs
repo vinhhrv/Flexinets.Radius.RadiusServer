@@ -64,7 +64,7 @@ namespace Flexinets.Radius
                 _server = new UdpClientWrapper(_localEndpoint);
                 Running = true;
                 _log.Info($"Starting Radius server on {_localEndpoint}");
-                var receiveTask = StartReceiveLoop();
+                var receiveTask = StartReceiveLoopAsync();
                 _log.Info("Server started");
             }
             else
@@ -97,7 +97,7 @@ namespace Flexinets.Radius
         /// Start the loop used for receiving packets
         /// </summary>
         /// <returns></returns>
-        private async Task StartReceiveLoop()
+        private async Task StartReceiveLoopAsync()
         {
             while (Running)
             {
