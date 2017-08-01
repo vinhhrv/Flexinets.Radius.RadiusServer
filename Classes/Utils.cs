@@ -10,8 +10,8 @@ namespace Flexinets.Radius
 
         public static Byte[] StringToByteArray(String hex)
         {
-            Int32 NumberChars = hex.Length;
-            Byte[] bytes = new Byte[NumberChars / 2];
+            var NumberChars = hex.Length;
+            var bytes = new Byte[NumberChars / 2];
             for (var i = 0; i < NumberChars; i += 2)
             {
                 bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
@@ -31,7 +31,7 @@ namespace Flexinets.Radius
 
 
         /// <summary>
-        /// Get the mccmnc as a string from a 3GPP-User-Location-Info vendor attribute. SAI and CGI only for now
+        /// Get the mccmnc as a string from a 3GPP-User-Location-Info vendor attribute.
         /// </summary>
         /// <param name="bytes"></param>
         /// <returns></returns>

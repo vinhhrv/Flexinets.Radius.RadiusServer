@@ -63,12 +63,12 @@ namespace Flexinets.Radius
 
 
         /// <summary>
-        /// Parses the udp raw packet and returns a more easily readable IRadiusPacket
+        /// Parses packet bytes and returns an IRadiusPacket
         /// </summary>
         /// <param name="packetBytes"></param>
         /// <param name="dictionary"></param>
         /// <param name="sharedSecret"></param>
-        public static IRadiusPacket ParseRawPacket(Byte[] packetBytes, RadiusDictionary dictionary, Byte[] sharedSecret)
+        public static IRadiusPacket Parse(Byte[] packetBytes, RadiusDictionary dictionary, Byte[] sharedSecret)
         {
             // Check the packet length and make sure its valid
             Array.Reverse(packetBytes, 2, 2);
@@ -91,43 +91,39 @@ namespace Flexinets.Radius
             Buffer.BlockCopy(packetBytes, 4, radiusPacket.Authenticator, 0, 16);
 
             // The rest are attribute value pairs
-            Int16 i = 20;
-            while (i < packetBytes.Length)
+            var position = 20;
+            while (position < packetBytes.Length)
             {
-                var typecode = packetBytes[i];
-                var length = packetBytes[i + 1];
+                var typecode = packetBytes[position];
+                var length = packetBytes[position + 1];
 
-                if (i + length > packetLength)
+                if (position + length > packetLength)
                 {
                     throw new ArgumentOutOfRangeException("Go home roamserver, youre drunk");
                 }
                 var contentBytes = new Byte[length - 2];
-                Buffer.BlockCopy(packetBytes, i + 2, contentBytes, 0, length - 2);
+                Buffer.BlockCopy(packetBytes, position + 2, contentBytes, 0, length - 2);
 
                 try
                 {
-                    if (typecode == 26)
+                    if (typecode == 26) // VSA
                     {
                         var vsa = new VendorSpecificAttribute(contentBytes);
-                        var attributeDefinition = dictionary.VendorSpecificAttributes.FirstOrDefault(o => o.VendorId == vsa.VendorId && o.Code == vsa.VendorCode);
-                        if (attributeDefinition == null)
+                        var vendorAttributeDefinition = dictionary.VendorSpecificAttributes.FirstOrDefault(o => o.VendorId == vsa.VendorId && o.Code == vsa.VendorCode);
+                        if (vendorAttributeDefinition == null)
                         {
-                            _log.Debug($"Unknown vsa: {vsa.VendorId}:{vsa.VendorCode}");
+                            _log.Info($"Unknown vsa: {vsa.VendorId}:{vsa.VendorCode}");
                         }
                         else
                         {
                             try
                             {
-                                var content = ParseContentBytes(vsa.Value, attributeDefinition.Type, typecode, radiusPacket.Authenticator, radiusPacket.SharedSecret);
-                                if (!radiusPacket.Attributes.ContainsKey(attributeDefinition.Name))
-                                {
-                                    radiusPacket.Attributes.Add(attributeDefinition.Name, new List<object>());
-                                }
-                                radiusPacket.Attributes[attributeDefinition.Name].Add(content);
+                                var content = ParseContentBytes(vsa.Value, vendorAttributeDefinition.Type, typecode, radiusPacket.Authenticator, radiusPacket.SharedSecret);
+                                radiusPacket.AddAttributeObject(vendorAttributeDefinition.Name, content);
                             }
                             catch (Exception ex)
                             {
-                                _log.Error($"Something went wrong with vsa {attributeDefinition.Name}", ex);
+                                _log.Error($"Something went wrong with vsa {vendorAttributeDefinition.Name}", ex);
                             }
                         }
                     }
@@ -137,15 +133,11 @@ namespace Flexinets.Radius
                         try
                         {
                             var content = ParseContentBytes(contentBytes, attributeDefinition.Type, typecode, radiusPacket.Authenticator, radiusPacket.SharedSecret);
-                            if (!radiusPacket.Attributes.ContainsKey(attributeDefinition.Name))
-                            {
-                                radiusPacket.Attributes.Add(attributeDefinition.Name, new List<object>());
-                            }
-                            radiusPacket.Attributes[attributeDefinition.Name].Add(content);
+                            radiusPacket.AddAttributeObject(attributeDefinition.Name, content);
                         }
                         catch (Exception ex)
                         {
-                            _log.Error($"Something went wrong with vsa {attributeDefinition.Name}", ex);
+                            _log.Error($"Something went wrong with {attributeDefinition.Name}", ex);
                         }
                     }
                 }
@@ -158,7 +150,7 @@ namespace Flexinets.Radius
                     _log.Error($"Something went wrong parsing attribute {typecode}", ex);
                 }
 
-                i += length;
+                position += length;
             }
 
             return radiusPacket;
@@ -190,11 +182,7 @@ namespace Flexinets.Radius
                     {
                         return RadiusPassword.Decrypt(sharedSecret, authenticator, contentBytes);
                     }
-                    // Otherwise just dump the bytes into the attribute
-                    else
-                    {
-                        return contentBytes;
-                    }
+                    return contentBytes;
 
                 case "integer":
                     return BitConverter.ToUInt32(contentBytes.Reverse().ToArray(), 0);
@@ -212,7 +200,7 @@ namespace Flexinets.Radius
 
 
         /// <summary>
-        /// Creates a response packet with authenticator, identifier, secret etc set
+        /// Creates a response packet with code, authenticator, identifier and secret from the request packet.
         /// </summary>
         /// <param name="responseCode"></param>
         /// <returns></returns>
@@ -262,8 +250,6 @@ namespace Flexinets.Radius
         }
 
 
-
-
         /// <summary>
         /// Add attribute to packet
         /// </summary>
@@ -286,11 +272,11 @@ namespace Flexinets.Radius
             AddAttributeObject(name, value);
         }
 
-        private void AddAttributeObject(string name, object value)
+        private void AddAttributeObject(String name, Object value)
         {
             if (!Attributes.ContainsKey(name))
             {
-                Attributes.Add(name, new List<object>());
+                Attributes.Add(name, new List<Object>());
             }
             Attributes[name].Add(value);
         }
@@ -307,7 +293,7 @@ namespace Flexinets.Radius
         /// <returns></returns>
         public static String CalculateMessageAuthenticator(IRadiusPacket packet, RadiusDictionary dictionary)
         {
-            var checkPacket = ParseRawPacket(packet.GetBytes(dictionary), dictionary, packet.SharedSecret);    // This is a bit daft, but we dont want side effects do we...
+            var checkPacket = Parse(packet.GetBytes(dictionary), dictionary, packet.SharedSecret);    // This is a bit daft, but we dont want side effects do we...
             checkPacket.Attributes["Message-Authenticator"][0] = new Byte[16];
 
             var bytes = checkPacket.GetBytes(dictionary);

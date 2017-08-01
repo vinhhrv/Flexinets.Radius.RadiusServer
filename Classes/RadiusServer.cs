@@ -84,7 +84,7 @@ namespace Flexinets.Radius
             {
                 _log.Info("Stopping server");
                 Running = false;
-                _server.Dispose();
+                _server?.Dispose();
                 _log.Info("Stopped");
             }
             else
@@ -138,7 +138,7 @@ namespace Flexinets.Radius
                 else
                 {
                     _log.Error($"No packet handler found for remote ip {remoteEndpoint}");
-                    var packet = RadiusPacket.ParseRawPacket(packetBytes, _dictionary, Encoding.UTF8.GetBytes("wut"));
+                    var packet = RadiusPacket.Parse(packetBytes, _dictionary, Encoding.UTF8.GetBytes("wut"));
                     DumpPacket(packet);
                 }
             }
@@ -169,7 +169,7 @@ namespace Flexinets.Radius
         /// <returns></returns>
         public IRadiusPacket GetResponsePacket(IPacketHandler packetHandler, String sharedSecret, Byte[] packetBytes, IPEndPoint remoteEndpoint)
         {
-            var requestPacket = RadiusPacket.ParseRawPacket(packetBytes, _dictionary, Encoding.UTF8.GetBytes(sharedSecret));
+            var requestPacket = RadiusPacket.Parse(packetBytes, _dictionary, Encoding.UTF8.GetBytes(sharedSecret));
             _log.Info($"Received {requestPacket.Code} from {remoteEndpoint} Id={requestPacket.Identifier}");
 
             if (_log.IsDebugEnabled)
@@ -221,10 +221,11 @@ namespace Flexinets.Radius
         /// Sends a packet
         /// </summary>
         /// <param name="responsePacket"></param>
-        /// <param name="sender"></param>
+        /// <param name="remoteEndpoint"></param>
+        /// <param name="dictionary"></param>
         private void SendResponsePacket(IRadiusPacket responsePacket, IPEndPoint remoteEndpoint, RadiusDictionary dictionary)
         {
-            var responseBytes = GetBytes(responsePacket, dictionary);
+            var responseBytes = GetBytesWithResponseAuthenticator(responsePacket, dictionary);
             _server.Send(responseBytes, responseBytes.Length, remoteEndpoint);   // todo thread safety... although this implementation will be implicitly thread safeish...
             _log.Info($"{responsePacket.Code} sent to {remoteEndpoint} Id={responsePacket.Identifier}");
         }
@@ -233,8 +234,10 @@ namespace Flexinets.Radius
         /// <summary>
         /// Get the raw packet bytes with calculated response authenticator
         /// </summary>
+        /// <param name="packet"></param>
+        /// <param name="dictionary"></param>
         /// <returns></returns>
-        public static Byte[] GetBytes(IRadiusPacket packet, RadiusDictionary dictionary)
+        public static Byte[] GetBytesWithResponseAuthenticator(IRadiusPacket packet, RadiusDictionary dictionary)
         {
             var packetBytes = packet.GetBytes(dictionary);
             var responseAuthenticator = CreateResponseAuthenticator(packet.SharedSecret, packet.Authenticator, packetBytes);

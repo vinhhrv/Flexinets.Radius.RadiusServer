@@ -28,7 +28,7 @@ namespace RadiusServerTests
 
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
-            var responseBytes = RadiusServer.GetBytes(response, dictionary);
+            var responseBytes = RadiusServer.GetBytesWithResponseAuthenticator(response, dictionary);
 
             Assert.AreEqual(expected, Utils.ByteArrayToString(responseBytes));
         }
@@ -50,7 +50,7 @@ namespace RadiusServerTests
 
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
-            var responseBytes = RadiusServer.GetBytes(response, dictionary);
+            var responseBytes = RadiusServer.GetBytesWithResponseAuthenticator(response, dictionary);
 
             Assert.AreEqual(expected, Utils.ByteArrayToString(responseBytes));
         }
@@ -72,7 +72,7 @@ namespace RadiusServerTests
 
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Accounting);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
-            var responseBytes = RadiusServer.GetBytes(response, dictionary);
+            var responseBytes = RadiusServer.GetBytesWithResponseAuthenticator(response, dictionary);
 
             Assert.AreEqual(expected, Utils.ByteArrayToString(responseBytes));
         }
@@ -95,7 +95,7 @@ namespace RadiusServerTests
 
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
-            var responseBytes = RadiusServer.GetBytes(response, dictionary);
+            var responseBytes = RadiusServer.GetBytesWithResponseAuthenticator(response, dictionary);
 
             Assert.AreEqual(expected, Utils.ByteArrayToString(responseBytes));
         }
@@ -118,7 +118,7 @@ namespace RadiusServerTests
 
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
-            var responseBytes = RadiusServer.GetBytes(response, dictionary);
+            var responseBytes = RadiusServer.GetBytesWithResponseAuthenticator(response, dictionary);
 
             Assert.AreEqual(expected, Utils.ByteArrayToString(responseBytes));
         }
@@ -137,7 +137,7 @@ namespace RadiusServerTests
             var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
             var dictionary = new RadiusDictionary(path);
 
-            var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
+            var requestPacket = RadiusPacket.Parse(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var bytes = requestPacket.GetBytes(dictionary);
 
             Assert.AreEqual(expected, Utils.ByteArrayToString(bytes));
@@ -157,7 +157,7 @@ namespace RadiusServerTests
             var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
             var dictionary = new RadiusDictionary(path);
 
-            var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
+            var requestPacket = RadiusPacket.Parse(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var calculatedMessageAuthenticator = RadiusPacket.CalculateMessageAuthenticator(requestPacket, dictionary);
             Assert.AreEqual(expected, calculatedMessageAuthenticator);
         }
@@ -176,7 +176,7 @@ namespace RadiusServerTests
             var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
             var dictionary = new RadiusDictionary(path);
 
-            var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
+            var requestPacket = RadiusPacket.Parse(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var calculatedMessageAuthenticator = RadiusPacket.CalculateMessageAuthenticator(requestPacket, dictionary);
             Assert.AreNotEqual(expected, calculatedMessageAuthenticator);
         }
@@ -194,7 +194,7 @@ namespace RadiusServerTests
             var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
             var dictionary = new RadiusDictionary(path);
 
-            var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
+            var requestPacket = RadiusPacket.Parse(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var locationInfo = requestPacket.GetAttribute<Byte[]>("3GPP-User-Location-Info");
 
             Assert.AreEqual("23201", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo).mccmnc);
@@ -216,7 +216,7 @@ namespace RadiusServerTests
             var dictionary = new RadiusDictionary(path);
 
             var ltelocationid = Utils.StringToByteArray("8232f210426d32f21000013e02");
-            var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
+            var requestPacket = RadiusPacket.Parse(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var locationInfo = requestPacket.GetAttribute<Byte[]>("3GPP-User-Location-Info");
             Assert.AreEqual("23201", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo).mccmnc);
         }
@@ -235,7 +235,7 @@ namespace RadiusServerTests
             var dictionary = new RadiusDictionary(path);
 
             var ltelocationid = Utils.StringToByteArray("8232f210426d32f21000013e02");
-            var requestPacket = RadiusPacket.ParseRawPacket(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
+            var requestPacket = RadiusPacket.Parse(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var locationInfo = requestPacket.GetAttribute<Byte[]>("3GPP-User-Location-Info");
             Assert.AreEqual("23801", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo).mccmnc);
         }      

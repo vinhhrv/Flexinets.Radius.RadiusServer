@@ -37,7 +37,7 @@ namespace Flexinets.Radius
             });
             // todo use events to create a common udpclient for multiple packets to enable sending and receiving without blocking
             var response = await _udpClient.ReceiveAsync();
-            return RadiusPacket.ParseRawPacket(response.Buffer, _dictionary, packet.SharedSecret);
+            return RadiusPacket.Parse(response.Buffer, _dictionary, packet.SharedSecret);
         }
 
 
