@@ -59,7 +59,7 @@ namespace Flexinets.Radius
                     }
                 }
 
-                _log.InfoFormat($"Parsed {Attributes.Count} attributes and {VendorSpecificAttributes.Count} vendor attributes from file");
+                _log.Info($"Parsed {Attributes.Count} attributes and {VendorSpecificAttributes.Count} vendor attributes from file");
             }
         }
     }

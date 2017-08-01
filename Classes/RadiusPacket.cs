@@ -289,14 +289,13 @@ namespace Flexinets.Radius
         /// <returns></returns>
         public static Byte[] CalculateMessageAuthenticator(IRadiusPacket packet, RadiusDictionary dictionary)
         {
-            var checkPacket = Parse(packet.GetBytes(dictionary), dictionary, packet.SharedSecret);    // This is a bit daft, but we dont want side effects do we...
+            // Clone the original packet so we can change the message authenticator to zeros
+            var checkPacket = Parse(packet.GetBytes(dictionary), dictionary, packet.SharedSecret);
             checkPacket.Attributes["Message-Authenticator"][0] = new Byte[16];
-
-            var bytes = checkPacket.GetBytes(dictionary);
 
             using (var md5 = new HMACMD5(checkPacket.SharedSecret))
             {
-                return md5.ComputeHash(bytes);
+                return md5.ComputeHash(checkPacket.GetBytes(dictionary));
             }
         }
 
@@ -307,9 +306,12 @@ namespace Flexinets.Radius
         /// <returns></returns>
         public Byte[] GetBytes(RadiusDictionary dictionary)
         {
-            var packetbytes = new Byte[20]; // Should be 20 + AVPs...
-            packetbytes[0] = (Byte)Code;
-            packetbytes[1] = Identifier;
+            var packetBytes = new List<Byte>
+            {
+                (Byte)Code,
+                Identifier
+            };
+            packetBytes.AddRange(new Byte[18]); // Placeholder for length and authenticator
 
             foreach (var attribute in Attributes)
             {
@@ -317,13 +319,12 @@ namespace Flexinets.Radius
                 foreach (var value in attribute.Value)
                 {
                     var contentBytes = GetAttributeValueBytes(value);
-                    var headerBytes = new Byte[0];
+                    var headerBytes = new Byte[2];
 
                     // Figure out what kind of attribute this is
                     var attributeType = dictionary.Attributes.SingleOrDefault(o => o.Value.Name == attribute.Key);
                     if (dictionary.Attributes.ContainsValue(attributeType.Value))
                     {
-                        headerBytes = new Byte[2];
                         headerBytes[0] = attributeType.Value.Code;
 
                         // Encrypt password if this is a User-Password attribute
@@ -349,38 +350,28 @@ namespace Flexinets.Radius
                         }
                         else
                         {
-                            _log.Debug($"Ignoring unknown attribute {attribute.Key}");
+                            _log.Info($"Ignoring unknown attribute {attribute.Key}");
                         }
                     }
 
-                    var attributeBytes = new Byte[headerBytes.Length + contentBytes.Length];
-                    Buffer.BlockCopy(headerBytes, 0, attributeBytes, 0, headerBytes.Length);
-                    Buffer.BlockCopy(contentBytes, 0, attributeBytes, headerBytes.Length, contentBytes.Length);
-                    attributeBytes[1] = (Byte)attributeBytes.Length;
-
-                    // Add attribute to packet
-                    Array.Resize(ref packetbytes, packetbytes.Length + attributeBytes.Length);
-                    Buffer.BlockCopy(attributeBytes, 0, packetbytes, packetbytes.Length - attributeBytes.Length, attributeBytes.Length);
+                    headerBytes[1] = (Byte)(headerBytes.Length + contentBytes.Length);
+                    packetBytes.AddRange(headerBytes);
+                    packetBytes.AddRange(contentBytes);
                 }
             }
 
             // Note the order of the bytes...
-            var responselengthbytes = BitConverter.GetBytes(packetbytes.Length);
-            packetbytes[2] = responselengthbytes[1];
-            packetbytes[3] = responselengthbytes[0];
+            var packetLengthBytes = BitConverter.GetBytes(packetBytes.Count);
+            packetBytes[2] = packetLengthBytes[1];
+            packetBytes[3] = packetLengthBytes[0];
 
-            // If the packet is a response, calculate and set the response authenticator
-            if (_requestAuthenticator != null)
-            {
-                var responseAuthenticator = CalculateResponseAuthenticator(SharedSecret, _requestAuthenticator, packetbytes);
-                Buffer.BlockCopy(responseAuthenticator, 0, packetbytes, 4, 16);
-            }
-            else
-            {
-                Buffer.BlockCopy(Authenticator, 0, packetbytes, 4, 16);
-            }
+            var packetBytesArray = packetBytes.ToArray();
 
-            return packetbytes;
+            // If the packet is a response, calculate and set the response authenticator, otherwise use the randomised authenticator
+            var authenticator = _requestAuthenticator != null ? CalculateResponseAuthenticator(SharedSecret, _requestAuthenticator, packetBytesArray) : Authenticator;
+            Buffer.BlockCopy(authenticator, 0, packetBytesArray, 4, 16);
+
+            return packetBytesArray;
         }
 
 

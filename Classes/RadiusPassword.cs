@@ -67,6 +67,13 @@ namespace Flexinets.Radius
         }
 
 
+        /// <summary>
+        /// Encrypt a password
+        /// </summary>
+        /// <param name="sharedSecret"></param>
+        /// <param name="authenticator"></param>
+        /// <param name="passwordBytes"></param>
+        /// <returns></returns>
         public static Byte[] Encrypt(Byte[] sharedSecret, Byte[] authenticator, Byte[] passwordBytes)
         {
             Array.Resize(ref passwordBytes, passwordBytes.Length + (16 - (passwordBytes.Length % 16)));
