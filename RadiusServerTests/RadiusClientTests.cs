@@ -1,13 +1,9 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Text;
-using Flexinets.Radius;
-using System.Net;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
+using System.Net;
 using System.Reflection;
-using System.Collections;
 
-namespace RadiusServerTests
+namespace Flexinets.Radius.Tests
 {
     [TestClass]
     public class RadiusClientTests
@@ -25,10 +21,7 @@ namespace RadiusServerTests
             var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
             var dictionary = new RadiusDictionary(path);
 
-            var packet = new RadiusPacket(PacketCode.AccessRequest, 0, secret)
-            {
-                Authenticator = Utils.StringToByteArray("0f403f9473978057bd83d5cb98f4227a") // Set the authenticator manually since it otherwise will be randomized and fail the test
-            };
+            var packet = new RadiusPacket(PacketCode.AccessRequest, 0, secret, Utils.StringToByteArray("0f403f9473978057bd83d5cb98f4227a"));
             packet.AddAttribute("User-Name", "nemo");
             packet.AddAttribute("User-Password", "arctangent");
             packet.AddAttribute("NAS-IP-Address", IPAddress.Parse("192.168.1.16"));

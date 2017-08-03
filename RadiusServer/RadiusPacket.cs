@@ -50,15 +50,20 @@ namespace Flexinets.Radius
         /// <param name="code"></param>
         /// <param name="identifier"></param>
         /// <param name="secret"></param>
-        public RadiusPacket(PacketCode code, Byte identifier, String secret)
+        /// <param name="authenticator">Leave blank for random authenticator</param>
+        public RadiusPacket(PacketCode code, Byte identifier, String secret, Byte[] authenticator = null)
         {
             Code = code;
             Identifier = identifier;
             SharedSecret = Encoding.UTF8.GetBytes(secret);
-            Authenticator = new Byte[16];
-            using (var csp = RandomNumberGenerator.Create())
+            Authenticator = authenticator;
+            if (Authenticator == null)
             {
-                csp.GetNonZeroBytes(Authenticator);
+                Authenticator = new Byte[16];
+                using (var csp = RandomNumberGenerator.Create())
+                {
+                    csp.GetNonZeroBytes(Authenticator);
+                }
             }
         }
 

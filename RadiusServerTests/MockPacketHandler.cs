@@ -16,8 +16,8 @@ namespace Flexinets.Radius
                 if (packet.GetAttribute<String>("User-Password") == "arctangent")
                 {
                     var responsepacket = packet.CreateResponsePacket(PacketCode.AccessAccept);
-                    responsepacket.AddAttribute("Service-Type", (UInt32)1);
-                    responsepacket.AddAttribute("Login-Service", (UInt32)0);
+                    responsepacket.AddAttribute("Service-Type", 1);
+                    responsepacket.AddAttribute("Login-Service", 0);
                     responsepacket.AddAttribute("Login-IP-Host", IPAddress.Parse("192.168.1.3"));
                     return responsepacket;
                 }

@@ -1,13 +1,11 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Text;
-using Flexinets.Radius;
-using System.Net;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.IO;
+using System.Net;
 using System.Reflection;
-using System.Collections;
+using System.Text;
 
-namespace RadiusServerTests
+namespace Flexinets.Radius.Tests
 {
     [TestClass]
     public class RadiusServerTests
