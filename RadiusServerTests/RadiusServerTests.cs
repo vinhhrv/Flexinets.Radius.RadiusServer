@@ -138,6 +138,36 @@ namespace Flexinets.Radius.Tests
 
 
         /// <summary>
+        /// Test parsing and rebuilding a packet
+        /// </summary>
+        [TestCase]
+        public void TestCreatingAndParsingPacket()
+        {
+            var secret = "xyzzy5461";
+
+            var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
+            var dictionary = new RadiusDictionary(path);
+
+            var packet = new RadiusPacket(PacketCode.AccessRequest, 1, secret);
+            packet.AddAttribute("User-Name", "test@example.com");
+            packet.AddAttribute("User-Password", "test");
+            packet.AddAttribute("NAS-IP-Address", IPAddress.Parse("127.0.0.1"));
+            packet.AddAttribute("NAS-Port", 100);
+            packet.AddAttribute("3GPP-IMSI-MCC-MNC", "24001");
+            packet.AddAttribute("3GPP-CG-Address", IPAddress.Parse("127.0.0.1"));
+
+            var testPacket = RadiusPacket.Parse(packet.GetBytes(dictionary), dictionary, Encoding.UTF8.GetBytes(secret));
+
+            Assert.AreEqual("test@example.com", testPacket.GetAttribute<String>("User-Name"));
+            Assert.AreEqual("test", testPacket.GetAttribute<String>("User-Password"));
+            Assert.AreEqual(IPAddress.Parse("127.0.0.1"), testPacket.GetAttribute<IPAddress>("NAS-IP-Address"));
+            Assert.AreEqual(100, testPacket.GetAttribute<UInt32>("NAS-Port"));
+            Assert.AreEqual("24001", testPacket.GetAttribute<String>("3GPP-IMSI-MCC-MNC"));
+            Assert.AreEqual(IPAddress.Parse("127.0.0.1"), testPacket.GetAttribute<IPAddress>("3GPP-CG-Address"));
+        }
+
+
+        /// <summary>
         /// Test message authenticator validation success
         /// </summary>
         [TestCase]
