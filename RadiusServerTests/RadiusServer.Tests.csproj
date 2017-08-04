@@ -55,6 +55,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Flexinets.Radius.Core\Flexinets.Radius.Core.csproj">
+      <Project>{658C7009-7741-4C4E-B403-35E87C1E2E90}</Project>
+      <Name>Flexinets.Radius.Core</Name>
+    </ProjectReference>
     <ProjectReference Include="..\RadiusServer\RadiusServer.csproj">
       <Project>{968c479e-00e7-4d7b-b2f7-f3c26587f7f0}</Project>
       <Name>RadiusServer</Name>

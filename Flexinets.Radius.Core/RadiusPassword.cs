@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Flexinets.Radius
+namespace Flexinets.Radius.Core
 {
     public static class RadiusPassword
     {

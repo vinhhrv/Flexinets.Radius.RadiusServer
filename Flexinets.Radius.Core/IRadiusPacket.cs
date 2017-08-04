@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 
-namespace Flexinets.Radius
+namespace Flexinets.Radius.Core
 {
     public interface IRadiusPacket
     {

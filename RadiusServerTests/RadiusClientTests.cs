@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using Flexinets.Radius.Core;
+using NUnit.Framework;
 using System.IO;
 using System.Net;
 using System.Reflection;

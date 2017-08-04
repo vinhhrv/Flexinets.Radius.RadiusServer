@@ -1,7 +1,11 @@
-﻿using System;
+﻿using Flexinets.Radius.Core;
+using System;
 
 namespace Flexinets.Radius
 {
+    /// <summary>
+    /// Demonstration of basic packet handler with a static username and password
+    /// </summary>
     public sealed class TestPacketHandler : IPacketHandler
     {
         public IRadiusPacket HandlePacket(IRadiusPacket packet)

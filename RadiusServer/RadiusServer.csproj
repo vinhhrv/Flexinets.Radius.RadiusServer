@@ -38,6 +38,9 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Flexinets.Radius.Core, Version=1.0.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Flexinets.Radius.Core.1.0.3\lib\net47\Flexinets.Radius.Core.dll</HintPath>
+    </Reference>
     <Reference Include="log4net, Version=2.0.8.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
       <HintPath>..\packages\log4net.2.0.8\lib\net45-full\log4net.dll</HintPath>
     </Reference>
@@ -118,32 +121,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AcctStatusTypes.cs" />
-    <Compile Include="AcctTerminateCause.cs" />
-    <Compile Include="DictionaryVendorAttribute.cs" />
+    <Compile Include="IPacketHandler.cs" />
     <Compile Include="IUdpClientWrapper.cs" />
     <Compile Include="RadiusClient.cs" />
-    <Compile Include="RadiusDictionary.cs" />
-    <Compile Include="DictionaryAttribute.cs" />
-    <Compile Include="IPacketHandler.cs" />
-    <Compile Include="IRadiusPacket.cs" />
-    <Compile Include="PacketCode.cs" />
     <Compile Include="RadiusServerType.cs" />
-    <Compile Include="UdpClientMock.cs" />
     <Compile Include="UdpClientWrapper.cs" />
-    <Compile Include="VendorSpecificAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RadiusPacket.cs" />
-    <Compile Include="RadiusPassword.cs" />
     <Compile Include="RadiusServer.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="TestPacketHandler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="dictionary">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

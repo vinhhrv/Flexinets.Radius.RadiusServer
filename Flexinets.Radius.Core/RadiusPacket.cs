@@ -6,7 +6,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Flexinets.Radius
+namespace Flexinets.Radius.Core
 {
     /// <summary>
     /// This class encapsulates a Radius packet and presents it in a more readable form

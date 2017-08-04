@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Flexinets.Radius
+namespace Flexinets.Radius.Core
 {    
     public class DictionaryVendorAttribute
     {

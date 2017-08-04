@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Flexinets.Radius
+namespace Flexinets.Radius.Core
 {
     public class VendorSpecificAttribute
     {

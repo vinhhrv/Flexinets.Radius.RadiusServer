@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Flexinets.Radius.Core;
+using System;
 using System.Net;
 using System.Text;
 
