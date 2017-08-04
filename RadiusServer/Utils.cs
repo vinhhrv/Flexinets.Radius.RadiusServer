@@ -8,6 +8,12 @@ namespace Flexinets.Radius
     {
         private static readonly ILog _log = LogManager.GetLogger(typeof(Utils));
 
+
+        /// <summary>
+        /// Convert a string of hex encoded bytes to a byte array
+        /// </summary>
+        /// <param name="hex"></param>
+        /// <returns></returns>
         public static Byte[] StringToByteArray(String hex)
         {
             var NumberChars = hex.Length;
@@ -19,6 +25,12 @@ namespace Flexinets.Radius
             return bytes;
         }
 
+
+        /// <summary>
+        /// Convert a byte array to a string of hex encoded bytes
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <returns></returns>
         public static String ByteArrayToString(Byte[] bytes)
         {
             var hex = new StringBuilder(bytes.Length * 2);

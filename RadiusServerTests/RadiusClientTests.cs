@@ -18,7 +18,7 @@ namespace Flexinets.Radius.Tests
             var expected = "010000380f403f9473978057bd83d5cb98f4227a01066e656d6f02120dbe708d93d413ce3196e43f782a0aee0406c0a80110050600000003";
             var secret = "xyzzy5461";
 
-            var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\dictionary";
+            var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\radius.dictionary";
             var dictionary = new RadiusDictionary(path);
 
             var packet = new RadiusPacket(PacketCode.AccessRequest, 0, secret, Utils.StringToByteArray("0f403f9473978057bd83d5cb98f4227a"));
