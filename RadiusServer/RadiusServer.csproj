@@ -123,7 +123,6 @@
   <ItemGroup>
     <Compile Include="IPacketHandler.cs" />
     <Compile Include="IUdpClientWrapper.cs" />
-    <Compile Include="RadiusClient.cs" />
     <Compile Include="RadiusServerType.cs" />
     <Compile Include="UdpClientWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

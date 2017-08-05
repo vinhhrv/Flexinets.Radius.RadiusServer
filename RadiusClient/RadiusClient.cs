@@ -34,7 +34,7 @@ namespace Flexinets.Radius
             Task.Run(() =>
             {
                 Thread.Sleep(timeout);
-                _udpClient.Close();
+                _udpClient?.Close();
             });
             // todo use events to create a common udpclient for multiple packets to enable sending and receiving without blocking
             var response = await _udpClient.ReceiveAsync();
