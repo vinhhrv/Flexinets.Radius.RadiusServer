@@ -46,7 +46,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MockPacketHandler.cs" />
-    <Compile Include="RadiusClientTests.cs" />
     <Compile Include="RadiusServerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
