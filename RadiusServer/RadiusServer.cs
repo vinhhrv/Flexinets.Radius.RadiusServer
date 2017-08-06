@@ -250,7 +250,7 @@ namespace Flexinets.Radius
         {
             try
             {
-                _log.Debug(Utils.ByteArrayToString(packetBytes));
+                _log.Debug(packetBytes.ToHexString());
             }
             catch (Exception)
             {

@@ -29,7 +29,7 @@ namespace Flexinets.Radius.Tests
             packet.AddAttribute("NAS-IP-Address", IPAddress.Parse("192.168.1.16"));
             packet.AddAttribute("NAS-Port", 3);
 
-            Assert.AreEqual(expected, Utils.ByteArrayToString(packet.GetBytes(dictionary)));
+            Assert.AreEqual(expected, packet.GetBytes(dictionary).ToHexString());
         }
 
 
@@ -50,7 +50,7 @@ namespace Flexinets.Radius.Tests
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
 
-            Assert.AreEqual(expected, Utils.ByteArrayToString(response.GetBytes(dictionary)));
+            Assert.AreEqual(expected, response.GetBytes(dictionary).ToHexString());
         }
 
 
@@ -71,7 +71,7 @@ namespace Flexinets.Radius.Tests
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
 
-            Assert.AreEqual(expected, Utils.ByteArrayToString(response.GetBytes(dictionary)));
+            Assert.AreEqual(expected, response.GetBytes(dictionary).ToHexString());
         }
 
 
@@ -92,7 +92,7 @@ namespace Flexinets.Radius.Tests
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Accounting);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
 
-            Assert.AreEqual(expected, Utils.ByteArrayToString(response.GetBytes(dictionary)));
+            Assert.AreEqual(expected, response.GetBytes(dictionary).ToHexString());
         }
 
 
@@ -114,7 +114,7 @@ namespace Flexinets.Radius.Tests
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
 
-            Assert.AreEqual(expected, Utils.ByteArrayToString(response.GetBytes(dictionary)));
+            Assert.AreEqual(expected, response.GetBytes(dictionary).ToHexString());
         }
 
 
@@ -136,7 +136,7 @@ namespace Flexinets.Radius.Tests
             var rs = new RadiusServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
             var response = rs.GetResponsePacket(new MockPacketHandler(), secret, Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813));
 
-            Assert.AreEqual(expected, Utils.ByteArrayToString(response.GetBytes(dictionary)));
+            Assert.AreEqual(expected, response.GetBytes(dictionary).ToHexString());
         }
 
 
@@ -156,7 +156,7 @@ namespace Flexinets.Radius.Tests
             var requestPacket = RadiusPacket.Parse(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
             var bytes = requestPacket.GetBytes(dictionary);
 
-            Assert.AreEqual(expected, Utils.ByteArrayToString(bytes));
+            Assert.AreEqual(expected, bytes.ToHexString());
         }
 
 
@@ -204,7 +204,7 @@ namespace Flexinets.Radius.Tests
             var dictionary = new RadiusDictionary(path);
 
             var requestPacket = RadiusPacket.Parse(Utils.StringToByteArray(request), dictionary, Encoding.UTF8.GetBytes(secret));
-            var calculatedMessageAuthenticator = Utils.ByteArrayToString(RadiusPacket.CalculateMessageAuthenticator(requestPacket, dictionary));
+            var calculatedMessageAuthenticator = RadiusPacket.CalculateMessageAuthenticator(requestPacket, dictionary).ToHexString();
             Assert.AreEqual(expected, calculatedMessageAuthenticator);
         }
 

@@ -31,12 +31,12 @@ namespace Flexinets.Radius
         /// </summary>
         /// <param name="bytes"></param>
         /// <returns></returns>
-        public static String ByteArrayToString(Byte[] bytes)
+        public static String ToHexString(this Byte[] bytes)
         {
             var hex = new StringBuilder(bytes.Length * 2);
             foreach (var b in bytes)
             {
-                hex.AppendFormat("{0:x2}", b);
+                hex.Append($"{b:x2}");
             }
             return hex.ToString();
         }
@@ -69,7 +69,7 @@ namespace Flexinets.Radius
             }
             else
             {
-                _log.Error($"Unable to parse mccmnc from location attribute {ByteArrayToString(bytes)}");
+                _log.Error($"Unable to parse mccmnc from location attribute {bytes.ToHexString()}");
             }
 
             return (type, mccmnc);
