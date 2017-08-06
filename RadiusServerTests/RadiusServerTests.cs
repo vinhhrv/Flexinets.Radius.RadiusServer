@@ -244,8 +244,18 @@ namespace Flexinets.Radius.Tests
             var locationInfo = requestPacket.GetAttribute<Byte[]>("3GPP-User-Location-Info");
 
             Assert.AreEqual("23201", Utils.GetMccMncFrom3GPPLocationInfo(locationInfo).mccmnc);
-            Assert.AreEqual("23430", Utils.GetMccMncFrom3GPPLocationInfo(Utils.StringToByteArray("0032f4030921b8e8")).mccmnc);
-            Assert.AreEqual("310170", Utils.GetMccMncFrom3GPPLocationInfo(Utils.StringToByteArray("001300710921b8e8")).mccmnc);
+        }
+
+
+        /// <summary>
+        /// Test 3GPP location info parsing from various bytes
+        /// </summary>
+        [TestCase("0032f4030921b8e8", "23430")]
+        [TestCase("001300710921b8e8", "310170")]
+        [TestCase("071300710921b8e8", null)]
+        public void Test3GPPLocationInfoParsing2(String hexBytes, String mccmnc)
+        {
+            Assert.AreEqual(mccmnc, Utils.GetMccMncFrom3GPPLocationInfo(Utils.StringToByteArray(hexBytes)).mccmnc);
         }
 
 

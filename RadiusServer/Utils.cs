@@ -1,14 +1,10 @@
-﻿using log4net;
-using System;
+﻿using System;
 using System.Text;
 
 namespace Flexinets.Radius
 {
     public static class Utils
     {
-        private static readonly ILog _log = LogManager.GetLogger(typeof(Utils));
-
-
         /// <summary>
         /// Convert a string of hex encoded bytes to a byte array
         /// </summary>
@@ -50,7 +46,7 @@ namespace Flexinets.Radius
         public static (LocationType locationType, String mccmnc) GetMccMncFrom3GPPLocationInfo(Byte[] bytes)
         {
             String mccmnc = null;
-            var type = (LocationType)bytes[0];  // hmm...
+            var type = (LocationType)bytes[0];
             if (type == LocationType.CGI || type == LocationType.ECGI || type == LocationType.RAI || type == LocationType.SAI || type == LocationType.TAI || type == LocationType.TAIAndECGI)
             {
                 var mccDigit1 = (bytes[1] & 15).ToString();
@@ -66,11 +62,7 @@ namespace Flexinets.Radius
                 {
                     mccmnc = mccmnc + mncDigit3;
                 }
-            }
-            else
-            {
-                _log.Error($"Unable to parse mccmnc from location attribute {bytes.ToHexString()}");
-            }
+            }           
 
             return (type, mccmnc);
         }
