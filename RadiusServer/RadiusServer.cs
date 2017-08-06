@@ -45,13 +45,28 @@ namespace Flexinets.Radius
         /// <summary>
         /// Add packet handler for remote endpoint
         /// </summary>
-        /// <param name="remoteEndpoint"></param>
+        /// <param name="remoteAddress"></param>
         /// <param name="sharedSecret"></param>
         /// <param name="packetHandler"></param>
-        public void AddPacketHandler(IPAddress remoteEndpoint, String sharedSecret, IPacketHandler packetHandler)
+        public void AddPacketHandler(IPAddress remoteAddress, String sharedSecret, IPacketHandler packetHandler)
         {
-            _log.Info($"Adding packet handler of type {packetHandler.GetType()} for remote IP {remoteEndpoint.ToString()} to {_serverType}Server");
-            _packetHandlers.Add(remoteEndpoint, (packetHandler, sharedSecret));
+            _log.Info($"Adding packet handler of type {packetHandler.GetType()} for remote IP {remoteAddress} to {_serverType}Server");
+            _packetHandlers.Add(remoteAddress, (packetHandler, sharedSecret));
+        }
+
+
+        /// <summary>
+        /// Add packet handler for multiple remote endpoints
+        /// </summary>
+        /// <param name="remoteAddresses"></param>
+        /// <param name="sharedSecret"></param>
+        /// <param name="packetHandler"></param>
+        public void AddPacketHandler(List<IPAddress> remoteAddresses, String sharedSecret, IPacketHandler packetHandler)
+        {
+            foreach (var address in remoteAddresses)
+            {
+                _packetHandlers.Add(address, (packetHandler, sharedSecret));
+            }
         }
 
 
@@ -212,8 +227,6 @@ namespace Flexinets.Radius
             {
                 responsePacket.Attributes.Add("Proxy-State", requestPacket.Attributes.SingleOrDefault(o => o.Key == "Proxy-State").Value);
             }
-
-            //responsePacket.au
 
             return responsePacket;
         }
