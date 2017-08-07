@@ -193,17 +193,6 @@ namespace Flexinets.Radius
                 DumpPacketBytes(packetBytes);
             }
 
-            if (requestPacket.Attributes.ContainsKey("Message-Authenticator"))
-            {
-                var messageAuthenticator = requestPacket.GetAttribute<Byte[]>("Message-Authenticator");
-                var calculatedMessageAuthenticator = RadiusPacket.CalculateMessageAuthenticator(requestPacket, _dictionary);
-                if (!messageAuthenticator.SequenceEqual(calculatedMessageAuthenticator))
-                {
-                    _log.Warn($"Invalid Message-Authenticator in packet {requestPacket.Identifier} from {remoteEndpoint}, check secret");
-                    return null;
-                }
-            }
-
             // Handle status server requests in server outside packet handler
             if (requestPacket.Code == PacketCode.StatusServer)
             {
