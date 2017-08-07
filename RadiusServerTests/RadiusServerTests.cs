@@ -39,6 +39,24 @@ namespace Flexinets.Radius.Tests
 
 
         /// <summary>
+        /// Create disconnect request packet and verify bytes
+        /// </summary>
+        [TestCase]
+        public void TestCreateDisconnectRequestPacket()
+        {
+            var expected = "2801001e2ec8a0da729620319be0140bc28e92682c0a3039303432414638";
+            var secret = "xyzzy5461";
+
+            var packet = new RadiusPacket(PacketCode.DisconnectRequest, 1, secret);
+            packet.AddAttribute("Acct-Session-Id", "09042AF8");
+
+            Assert.AreEqual(expected, packet.GetBytes(GetDictionary()).ToHexString());
+        }
+
+
+        //
+
+        /// <summary>
         /// Create accounting request        
         /// </summary>
         [TestCase]
@@ -68,7 +86,7 @@ namespace Flexinets.Radius.Tests
             var packetBytes = "0404002711019c27d4e00cbc523b3e2fc834baf401066e656d6f2806000000012c073230303234";
             var secret = "xyzzy5461";
 
-            var requestAuthenticator = RadiusPacket.CalculateAccountingRequestAuthenticator(Encoding.UTF8.GetBytes(secret), Utils.StringToByteArray(packetBytes));
+            var requestAuthenticator = RadiusPacket.CalculateRequestAuthenticator(Encoding.UTF8.GetBytes(secret), Utils.StringToByteArray(packetBytes));
             var packet = RadiusPacket.Parse(Utils.StringToByteArray(packetBytes), GetDictionary(), Encoding.UTF8.GetBytes(secret));
 
             Assert.AreEqual(packet.Authenticator.ToHexString(), requestAuthenticator.ToHexString());
@@ -86,7 +104,7 @@ namespace Flexinets.Radius.Tests
             var packetBytes = "0404002711019c27d4e00cbc523b3e2fc834baf401066e656d6f2806000000012c073230303234";
             var secret = "foo";
 
-            var requestAuthenticator = RadiusPacket.CalculateAccountingRequestAuthenticator(Encoding.UTF8.GetBytes(secret), Utils.StringToByteArray(packetBytes));
+            var requestAuthenticator = RadiusPacket.CalculateRequestAuthenticator(Encoding.UTF8.GetBytes(secret), Utils.StringToByteArray(packetBytes));
             Assert.That(() => RadiusPacket.Parse(Utils.StringToByteArray(packetBytes), GetDictionary(), Encoding.UTF8.GetBytes(secret)),
                 Throws.TypeOf<InvalidOperationException>());
         }

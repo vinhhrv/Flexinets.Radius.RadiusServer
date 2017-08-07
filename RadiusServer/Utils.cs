@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 
 namespace Flexinets.Radius
 {
@@ -29,12 +28,7 @@ namespace Flexinets.Radius
         /// <returns></returns>
         public static String ToHexString(this Byte[] bytes)
         {
-            var hex = new StringBuilder(bytes.Length * 2);
-            foreach (var b in bytes)
-            {
-                hex.Append($"{b:x2}");
-            }
-            return hex.ToString();
+            return BitConverter.ToString(bytes).ToLowerInvariant().Replace("-", "");
         }
 
 
