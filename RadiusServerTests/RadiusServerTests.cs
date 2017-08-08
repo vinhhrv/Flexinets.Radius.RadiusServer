@@ -40,6 +40,28 @@ namespace Flexinets.Radius.Tests
 
 
         /// <summary>
+        /// Create packet and verify bytes
+        /// Example from https://tools.ietf.org/html/rfc2865
+        /// </summary>
+        [TestCase]
+        public void TestCreateAccessRequestPacketUnknownAttribute()
+        {
+            var secret = "xyzzy5461";
+
+            var packet = new RadiusPacket(PacketCode.AccessRequest, 0, secret);
+            packet.Authenticator = Utils.StringToByteArray("0f403f9473978057bd83d5cb98f4227a");
+            packet.AddAttribute("User-Name", "nemo");
+            packet.AddAttribute("hurr", "durr");
+            packet.AddAttribute("User-Password", "arctangent");
+            packet.AddAttribute("NAS-IP-Address", IPAddress.Parse("192.168.1.16"));
+            packet.AddAttribute("NAS-Port", 3);
+
+            Assert.That(() => packet.GetBytes(GetDictionary()),
+               Throws.TypeOf<InvalidOperationException>());
+        }
+
+
+        /// <summary>
         /// Create disconnect request packet and verify bytes
         /// </summary>
         [TestCase]
