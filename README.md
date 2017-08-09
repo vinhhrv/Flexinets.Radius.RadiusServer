@@ -30,3 +30,5 @@ if (responsePacket.Code == PacketCode.AccessAccept)
   // Hooray          
 }
 ```
+
+Multiple requests and responses can be made asynchronously on the same local port as long as the identifier and remote host:port remain unique
