@@ -120,7 +120,7 @@ namespace Flexinets.Radius
                 try
                 {
                     var response = await _server.ReceiveAsync();
-                    Task.Factory.StartNew(() => HandlePacket(response.RemoteEndPoint, response.Buffer), TaskCreationOptions.LongRunning);
+                    var task = Task.Factory.StartNew(() => HandlePacket(response.RemoteEndPoint, response.Buffer), TaskCreationOptions.LongRunning);
                 }
                 catch (ObjectDisposedException) { } // This is thrown when udpclient is disposed, can be safely ignored
                 catch (Exception ex)
