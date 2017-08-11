@@ -160,12 +160,12 @@ namespace Flexinets.Radius
             catch (Exception ex) when (ex is ArgumentException || ex is OverflowException)
             {
                 _log.Warn($"Ignoring malformed(?) packet received from {remoteEndpoint}", ex);
-                DumpPacketBytes(packetBytes);
+                _log.Debug(packetBytes.ToHexString());
             }
             catch (Exception ex)
             {
                 _log.Error($"Failed to receive packet from {remoteEndpoint}", ex);
-                DumpPacketBytes(packetBytes);
+                _log.Debug(packetBytes.ToHexString());
             }
             finally
             {
@@ -189,9 +189,9 @@ namespace Flexinets.Radius
 
             if (_log.IsDebugEnabled)
             {
-                DumpPacket(requestPacket);
-                DumpPacketBytes(packetBytes);
+                DumpPacket(requestPacket);                                
             }
+            _log.Debug(packetBytes.ToHexString());
 
             // Handle status server requests in server outside packet handler
             if (requestPacket.Code == PacketCode.StatusServer)
@@ -241,23 +241,6 @@ namespace Flexinets.Radius
         public void Dispose()
         {
             _server?.Dispose();
-        }
-
-
-        /// <summary>
-        /// Log packet bytes for debugging
-        /// </summary>
-        /// <param name="packetBytes"></param>
-        private static void DumpPacketBytes(Byte[] packetBytes)
-        {
-            try
-            {
-                _log.Debug(packetBytes.ToHexString());
-            }
-            catch (Exception)
-            {
-                _log.Warn("duh");
-            }
         }
 
 

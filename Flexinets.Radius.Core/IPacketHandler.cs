@@ -1,7 +1,7 @@
 ﻿using Flexinets.Radius.Core;
 using System;
 
-namespace Flexinets.Radius
+namespace Flexinets.Radius.Core
 {
     public interface IPacketHandler : IDisposable
     {

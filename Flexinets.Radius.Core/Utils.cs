@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Flexinets.Radius
+namespace Flexinets.Radius.Core
 {
     public static class Utils
     {
@@ -28,6 +28,10 @@ namespace Flexinets.Radius
         /// <returns></returns>
         public static String ToHexString(this Byte[] bytes)
         {
+            if (bytes == null)
+            {
+                return null;
+            }
             return BitConverter.ToString(bytes).ToLowerInvariant().Replace("-", "");
         }
 
@@ -59,20 +63,6 @@ namespace Flexinets.Radius
             }           
 
             return (type, mccmnc);
-        }
-
-
-        /// <summary>
-        /// 3GPP location types
-        /// </summary>
-        public enum LocationType
-        {
-            CGI = 0,
-            SAI = 1,
-            RAI = 2,
-            TAI = 128,
-            ECGI = 129,
-            TAIAndECGI = 130
         }
     }
 }
