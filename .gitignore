@@ -191,3 +191,6 @@ ModelManifest.xml
 /WebApplication4
 
 *.nupkg
+
+# Visual Studio 2015 cache/options directory
+.vs/
