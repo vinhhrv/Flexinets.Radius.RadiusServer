@@ -38,6 +38,12 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Flexinets.Radius.Core, Version=1.0.10.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Flexinets.Radius.Core.1.0.10\lib\net47\Flexinets.Radius.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net, Version=2.0.8.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
+      <HintPath>..\packages\log4net.2.0.8\lib\net45-full\log4net.dll</HintPath>
+    </Reference>
     <Reference Include="nunit.framework, Version=3.7.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
       <HintPath>..\packages\NUnit.3.7.1\lib\net45\nunit.framework.dll</HintPath>
     </Reference>
@@ -52,12 +58,11 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
+    <Content Include="radius.dictionary">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Flexinets.Radius.Core\Flexinets.Radius.Core.csproj">
-      <Project>{658C7009-7741-4C4E-B403-35E87C1E2E90}</Project>
-      <Name>Flexinets.Radius.Core</Name>
-    </ProjectReference>
     <ProjectReference Include="..\RadiusServer\RadiusServer.csproj">
       <Project>{968c479e-00e7-4d7b-b2f7-f3c26587f7f0}</Project>
       <Name>RadiusServer</Name>
