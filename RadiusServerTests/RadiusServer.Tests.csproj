@@ -38,8 +38,11 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Flexinets.Radius.Core, Version=1.0.10.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Flexinets.Radius.Core.1.0.10\lib\net47\Flexinets.Radius.Core.dll</HintPath>
+    <Reference Include="Flexinets.Radius.Core, Version=1.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Flexinets.Radius.Core.1.3.0\lib\net47\Flexinets.Radius.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Flexinets.Radius.RadiusServer, Version=1.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Flexinets.Radius.RadiusServer.1.3.0\lib\net47\Flexinets.Radius.RadiusServer.dll</HintPath>
     </Reference>
     <Reference Include="log4net, Version=2.0.8.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
       <HintPath>..\packages\log4net.2.0.8\lib\net45-full\log4net.dll</HintPath>
@@ -57,16 +60,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="Content\radius.dictionary" />
     <None Include="packages.config" />
-    <Content Include="radius.dictionary">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\RadiusServer\RadiusServer.csproj">
-      <Project>{968c479e-00e7-4d7b-b2f7-f3c26587f7f0}</Project>
-      <Name>RadiusServer</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
