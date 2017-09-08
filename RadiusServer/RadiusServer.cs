@@ -182,7 +182,7 @@ namespace Flexinets.Radius
         /// <param name="packetBytes"></param>
         /// <param name="remoteEndpoint"></param>
         /// <returns></returns>
-        public IRadiusPacket GetResponsePacket(IPacketHandler packetHandler, String sharedSecret, Byte[] packetBytes, IPEndPoint remoteEndpoint)
+        internal IRadiusPacket GetResponsePacket(IPacketHandler packetHandler, String sharedSecret, Byte[] packetBytes, IPEndPoint remoteEndpoint)
         {
             var requestPacket = RadiusPacket.Parse(packetBytes, _dictionary, Encoding.UTF8.GetBytes(sharedSecret));
             _log.Info($"Received {requestPacket.Code} from {remoteEndpoint} Id={requestPacket.Identifier}");
