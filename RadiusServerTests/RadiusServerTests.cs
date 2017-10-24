@@ -8,11 +8,12 @@ using System.Text;
 
 namespace Flexinets.Radius.Tests
 {
+    [TestFixture]
     public class RadiusServerTests
     {
         private RadiusDictionary GetDictionary()
         {
-            var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\radius.dictionary";
+            var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\content\\radius.dictionary";
             var dictionary = new RadiusDictionary(path);
             return dictionary;
         }
@@ -22,7 +23,7 @@ namespace Flexinets.Radius.Tests
         /// Create packet and verify bytes
         /// Example from https://tools.ietf.org/html/rfc2865
         /// </summary>
-        [TestCase]
+        [Test]
         public void TestCreateAccessRequestPacket()
         {
             var expected = "010000380f403f9473978057bd83d5cb98f4227a01066e656d6f02120dbe708d93d413ce3196e43f782a0aee0406c0a80110050600000003";
@@ -43,7 +44,7 @@ namespace Flexinets.Radius.Tests
         /// Create packet and verify bytes
         /// Example from https://tools.ietf.org/html/rfc2865
         /// </summary>
-        [TestCase]
+        [Test]
         public void TestCreateAccessRequestPacketUnknownAttribute()
         {
             var secret = "xyzzy5461";
