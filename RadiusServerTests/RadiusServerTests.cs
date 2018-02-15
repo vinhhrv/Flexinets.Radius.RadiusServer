@@ -30,13 +30,36 @@ namespace Flexinets.Radius.Tests
             var secret = "xyzzy5461";
 
             var packet = new RadiusPacket(PacketCode.AccessRequest, 0, secret);
-            packet.Authenticator = Utils.StringToByteArray("0f403f9473978057bd83d5cb98f4227a"); 
+            packet.Authenticator = Utils.StringToByteArray("0f403f9473978057bd83d5cb98f4227a");
             packet.AddAttribute("User-Name", "nemo");
             packet.AddAttribute("User-Password", "arctangent");
             packet.AddAttribute("NAS-IP-Address", IPAddress.Parse("192.168.1.16"));
             packet.AddAttribute("NAS-Port", 3);
 
             Assert.AreEqual(expected, packet.GetBytes(GetDictionary()).ToHexString());
+        }
+
+
+        /// <summary>
+        /// Create packet and verify bytes, including IPv6 attribute
+        /// Example from https://tools.ietf.org/html/rfc2865
+        /// </summary>
+        [Test]
+        public void TestCreateAccessRequestPacketIPv6()
+        {
+            var expected = IPAddress.IPv6Loopback;
+            var secret = "xyzzy5461";
+
+            var packet = new RadiusPacket(PacketCode.AccessRequest, 0, secret);
+            packet.Authenticator = Utils.StringToByteArray("0f403f9473978057bd83d5cb98f4227a");
+            packet.AddAttribute("User-Name", "nemo");
+            packet.AddAttribute("User-Password", "arctangent");
+            packet.AddAttribute("NAS-IP-Address", IPAddress.Parse("192.168.1.16"));
+            packet.AddAttribute("Framed-IPv6-Address", expected);
+            packet.AddAttribute("NAS-Port", 3);
+
+            var actual = packet.GetAttribute<IPAddress>("Framed-IPv6-Address");
+            Assert.AreEqual(expected, actual);
         }
 
 
@@ -50,7 +73,7 @@ namespace Flexinets.Radius.Tests
             var secret = "xyzzy5461";
 
             var packet = new RadiusPacket(PacketCode.AccessRequest, 0, secret);
-            packet.Authenticator = Utils.StringToByteArray("0f403f9473978057bd83d5cb98f4227a");  
+            packet.Authenticator = Utils.StringToByteArray("0f403f9473978057bd83d5cb98f4227a");
             packet.AddAttribute("User-Name", "nemo");
             packet.AddAttribute("hurr", "durr");
             packet.AddAttribute("User-Password", "arctangent");
@@ -88,7 +111,7 @@ namespace Flexinets.Radius.Tests
             var secret = "xyzzy5461";
 
             var packet = new RadiusPacket(PacketCode.StatusServer, 218, secret);
-            packet.Authenticator = Utils.StringToByteArray("8a54f4686fb394c52866e302185d0623"); 
+            packet.Authenticator = Utils.StringToByteArray("8a54f4686fb394c52866e302185d0623");
 
             Assert.AreEqual(expected, packet.GetBytes(GetDictionary()).ToHexString());
         }
