@@ -22,4 +22,6 @@ authenticationServer.AddPacketHandler(IPAddress.Parse("127.0.0.1"), "secret", pa
 authenticationServer.Start();
 ```  
 
-The packet handler should implement IPacketHandler
+The packet handler should implement IPacketHandler  
+
+https://www.nuget.org/packages/Flexinets.Radius.RadiusServer/
