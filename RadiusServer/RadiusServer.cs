@@ -1,4 +1,5 @@
-﻿using Flexinets.Radius.Core;
+﻿using Flexinets.Net;
+using Flexinets.Radius.Core;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,8 @@ namespace Flexinets.Radius
     public sealed class RadiusServer : IDisposable
     {
         private static readonly ILog _log = LogManager.GetLogger(typeof(RadiusServer));
-        private IUdpClientWrapper _server;
+        private IUdpClient _server;
+        private IUdpClientFactory _udpClientFactory;
         private readonly IPEndPoint _localEndpoint;
         private readonly RadiusDictionary _dictionary;
         private readonly RadiusServerType _serverType;
@@ -34,8 +36,9 @@ namespace Flexinets.Radius
         /// <param name="localEndpoint"></param>
         /// <param name="dictionary"></param>
         /// <param name="serverType"></param>
-        public RadiusServer(IPEndPoint localEndpoint, RadiusDictionary dictionary, RadiusServerType serverType)
+        public RadiusServer(IUdpClientFactory udpClientFactory, IPEndPoint localEndpoint, RadiusDictionary dictionary, RadiusServerType serverType)
         {
+            _udpClientFactory = udpClientFactory;
             _localEndpoint = localEndpoint;
             _dictionary = dictionary;
             _serverType = serverType;
@@ -77,7 +80,7 @@ namespace Flexinets.Radius
         {
             if (!Running)
             {
-                _server = new UdpClientWrapper(_localEndpoint);
+                _server = _udpClientFactory.CreateClient(_localEndpoint);
                 Running = true;
                 _log.Info($"Starting Radius server on {_localEndpoint}");
                 var receiveTask = StartReceiveLoopAsync();
@@ -189,7 +192,7 @@ namespace Flexinets.Radius
 
             if (_log.IsDebugEnabled)
             {
-                DumpPacket(requestPacket);                                
+                DumpPacket(requestPacket);
             }
             _log.Debug(packetBytes.ToHexString());
 

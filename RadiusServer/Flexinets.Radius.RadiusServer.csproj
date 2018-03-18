@@ -1,21 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net47</TargetFrameworks>
-    <Version>1.3.0.0</Version>
+    <TargetFrameworks>netstandard2.0;net471</TargetFrameworks>
+    <Version>1.4.0.0</Version>
     <PackageProjectUrl>https://github.com/vforteli/RadiusServer</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/vforteli/RadiusServer/blob/master/LICENSE</PackageLicenseUrl>
     <Copyright>Copyright 2017 Verner Fortelius</Copyright>
-    <PackageReleaseNotes>Target .Net Core 2.0 and .Net 4.7</PackageReleaseNotes>
+    <PackageReleaseNotes>Breaking change: Move IUdpClient out of project.</PackageReleaseNotes>
     <Description>Radius server library. Implement IRadiusPacketHandler and handle packets.
 For an example server implementation hosted in a windows service, see: https://github.com/vforteli/RadiusServerService/tree/Base</Description>
     <Authors>Verner Fortelius</Authors>
     <PackageTags>Radius Radius-Server</PackageTags>
-    <AssemblyVersion>1.3.0.0</AssemblyVersion>
-    <FileVersion>1.3.0.0</FileVersion>
+    <AssemblyVersion>1.4.0.0</AssemblyVersion>
+    <FileVersion>1.4.0.0</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netstandard2.0|AnyCPU'">
+    <ShouldCreateLogs>True</ShouldCreateLogs>
+    <AdvancedSettingsExpanded>True</AdvancedSettingsExpanded>
+    <UpdateAssemblyVersion>False</UpdateAssemblyVersion>
+    <UpdateAssemblyFileVersion>False</UpdateAssemblyFileVersion>
+    <UpdateAssemblyInfoVersion>False</UpdateAssemblyInfoVersion>
+    <UpdatePackageVersion>False</UpdatePackageVersion>
+    <AssemblyInfoVersionType>SettingsVersion</AssemblyInfoVersionType>
+    <InheritWinAppVersionFrom>None</InheritWinAppVersionFrom>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Flexinets.Net.UdpClient" Version="1.0.7" />
     <PackageReference Include="Flexinets.Radius.Core" Version="1.3.0.2" />
   </ItemGroup>
 

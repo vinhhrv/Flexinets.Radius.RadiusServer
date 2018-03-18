@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.26730.10
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RadiusServer.Tests", "RadiusServerTests\RadiusServer.Tests.csproj", "{6C23F981-BA94-42CA-AA16-60658C8650CC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7C119506-7317-4BC0-9477-446E854D5EA2} = {7C119506-7317-4BC0-9477-446E854D5EA2}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Flexinets.Radius.RadiusServer", "RadiusServer\Flexinets.Radius.RadiusServer.csproj", "{7C119506-7317-4BC0-9477-446E854D5EA2}"
 EndProject
