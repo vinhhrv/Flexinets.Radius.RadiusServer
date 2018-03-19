@@ -27,7 +27,7 @@ For an example server implementation hosted in a windows service, see: https://g
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Flexinets.Net.UdpClient" Version="1.0.7" />
+    <PackageReference Include="Flexinets.Net.UdpClient" Version="1.1.0" />
     <PackageReference Include="Flexinets.Radius.Core" Version="1.3.0.2" />
   </ItemGroup>
 

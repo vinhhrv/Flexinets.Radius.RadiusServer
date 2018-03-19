@@ -6,7 +6,6 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -393,32 +392,27 @@ namespace Flexinets.Radius.Tests
         }
 
 
-
         /// <summary>
-        /// 
+        /// Test status-server response
+        /// Example from https://tools.ietf.org/html/rfc5997#section-6
         /// </summary>
         [TestCase]
-        public async Task TestUdpClientMock()
+        public async Task TestStatusServerAuthenticationResponsePacketUdpClient()
         {
-            var request = "017301cea4571e304078c73bbb4367ca5fcede3e1f103433363838383735303636393736011b32333230313038353030373639373640666c6578696e65747304060af7e0611a1600001fe40120001031352e3020283537393333291e0b666c6578696e6574730606000000020706000000073d06000000121a0e00001fe4003e0008000000021a17000028af01113233323031303835303037363937361a0d000028af080732333230311a09000028af0a03351a0c000028af020605654e411a0c000028af0d06303830301a0c000028af0606c23084e01a0c000028af0706c23084da1a09000028af1503061a18000028af1412383632383238303231323838323230301a15000028af160f8232f210426d32f21000013e021a0d000028af120732333230311a0d000028af090732333230311a09000028af0c03301a0a000028af170480011a1f000028af051930382d34433038303030343933453030303034393345301a0c000028af0306000000001a09000028af1a03001a0e00001fe4001800080000000f050600012d2202121e205a653bc6cad430e70a585ab0271f1a0c0000159f5806000000031a1100000009170b464c4558494e4554532104393521043935210439352105323136";
+            var request = "0cda00268a54f4686fb394c52866e302185d062350125a665e2e1e8411f3e243822097c84fa3";
+            var expected = "02da0014ef0d552a4bf2d693ec2b6fe8b5411d66";
             var secret = "xyzzy5461";
+
+
             var client = new UdpClientMock();
             var factory = new UdpClientMockFactory(client);
 
-
-            var task = Task.Run(() =>
-            {
-                return factory.CreateClient(null).ReceiveAsync();
-            });
-
-
-            client.SendMock(new UdpReceiveResult(Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Any, 1812)));
-
-
-            var result = await task;
-            var foo = result.Buffer.ToHexString();
-            Console.WriteLine(foo);
-            Assert.AreEqual(request, foo);
+            var dictionary = GetDictionary();
+            var rs = new RadiusServer(factory, new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
+            rs.AddPacketHandler(IPAddress.Parse("127.0.0.1"), secret, new MockPacketHandler());
+            rs.Start();
+            var response = await client.SendMock(new UdpReceiveResult(Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813)));
+            Assert.AreEqual(expected, response.Buffer.ToHexString());
         }
     }
 }
