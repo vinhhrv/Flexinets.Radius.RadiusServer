@@ -2,7 +2,9 @@
 using Flexinets.Radius.Core;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
@@ -433,6 +435,30 @@ namespace Flexinets.Radius.Tests
 
 
             Assert.AreEqual(password, decrypted);
+        }
+
+
+
+        /// <summary>
+        /// Test dictionary
+        /// </summary>   
+        [TestCase]
+        public void TestDictionary()
+        {
+            var attributes = new List<DictionaryAttribute>();
+            attributes.Add(new DictionaryAttribute("test", 1, "string"));
+            attributes.Add(new DictionaryAttribute("test2", 2, "string"));
+            attributes.Add(new DictionaryAttribute("test2", 3, "string"));
+
+            var vendorAttributes = new List<DictionaryVendorAttribute>();
+            vendorAttributes.Add(new DictionaryVendorAttribute(1, "vendortest", 1, "string"));
+            vendorAttributes.Add(new DictionaryVendorAttribute(1, "vendortest2", 2, "string"));
+            vendorAttributes.Add(new DictionaryVendorAttribute(1, "vendortest2", 3, "string"));
+            var dictionary = new RadiusDictionary(attributes, vendorAttributes);
+
+            Assert.AreEqual(4, dictionary.AttributeNames.Count);
+            Assert.AreEqual(3, dictionary.AttributeNames["test2"].Code);
+            Assert.AreEqual(3, ((DictionaryVendorAttribute)dictionary.AttributeNames["vendortest2"]).VendorCode);
         }
 
     }
