@@ -414,5 +414,26 @@ namespace Flexinets.Radius.Tests
             var response = await client.SendMock(new UdpReceiveResult(Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813)));
             Assert.AreEqual(expected, response.Buffer.ToHexString());
         }
+
+
+
+        /// <summary>
+        /// Test passwords with length > 16        
+        /// </summary>
+        [TestCase("123456789")]
+        [TestCase("12345678901234567890")]
+        public void TestPasswordEncryptDecrypt(String password)
+        {
+            var secret = "xyzzy5461";
+            var authenticator = "1234567890123456";
+
+            var encrypted = RadiusPassword.Encrypt(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes(authenticator), Encoding.UTF8.GetBytes(password));
+
+            var decrypted = RadiusPassword.Decrypt(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes(authenticator), encrypted);
+
+
+            Assert.AreEqual(password, decrypted);
+        }
+
     }
 }
