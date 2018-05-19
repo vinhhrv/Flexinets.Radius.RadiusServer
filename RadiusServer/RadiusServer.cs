@@ -18,7 +18,7 @@ namespace Flexinets.Radius
         private IUdpClient _server;
         private IUdpClientFactory _udpClientFactory;
         private readonly IPEndPoint _localEndpoint;
-        private readonly RadiusDictionary _dictionary;
+        private readonly IRadiusDictionary _dictionary;
         private readonly RadiusServerType _serverType;
         private Int32 _concurrentHandlerCount = 0;
         private readonly Dictionary<IPAddress, (IPacketHandler packetHandler, String secret)> _packetHandlers = new Dictionary<IPAddress, (IPacketHandler, String)>();
@@ -36,7 +36,7 @@ namespace Flexinets.Radius
         /// <param name="localEndpoint"></param>
         /// <param name="dictionary"></param>
         /// <param name="serverType"></param>
-        public RadiusServer(IUdpClientFactory udpClientFactory, IPEndPoint localEndpoint, RadiusDictionary dictionary, RadiusServerType serverType)
+        public RadiusServer(IUdpClientFactory udpClientFactory, IPEndPoint localEndpoint, IRadiusDictionary dictionary, RadiusServerType serverType)
         {
             _udpClientFactory = udpClientFactory;
             _localEndpoint = localEndpoint;
@@ -230,7 +230,7 @@ namespace Flexinets.Radius
         /// <param name="responsePacket"></param>
         /// <param name="remoteEndpoint"></param>
         /// <param name="dictionary"></param>
-        private void SendResponsePacket(IRadiusPacket responsePacket, IPEndPoint remoteEndpoint, RadiusDictionary dictionary)
+        private void SendResponsePacket(IRadiusPacket responsePacket, IPEndPoint remoteEndpoint, IRadiusDictionary dictionary)
         {
             var responseBytes = responsePacket.GetBytes(dictionary);
             _server.Send(responseBytes, responseBytes.Length, remoteEndpoint);   // todo thread safety... although this implementation will be implicitly thread safeish...

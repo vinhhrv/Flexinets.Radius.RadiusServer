@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net471</TargetFrameworks>
@@ -6,7 +6,7 @@
     <PackageProjectUrl>https://github.com/vforteli/RadiusServer</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/vforteli/RadiusServer/blob/master/LICENSE</PackageLicenseUrl>
     <Copyright>Copyright 2017 Verner Fortelius</Copyright>
-    <PackageReleaseNotes>Breaking change: Move IUdpClient out of project.</PackageReleaseNotes>
+    <PackageReleaseNotes>Use IRadiusDictionary</PackageReleaseNotes>
     <Description>Radius server library. Implement IRadiusPacketHandler and handle packets.
 For an example server implementation hosted in a windows service, see: https://github.com/vforteli/RadiusServerService/tree/Base</Description>
     <Authors>Verner Fortelius</Authors>
@@ -28,7 +28,7 @@ For an example server implementation hosted in a windows service, see: https://g
 
   <ItemGroup>
     <PackageReference Include="Flexinets.Net.UdpClient" Version="1.1.1" />
-    <PackageReference Include="Flexinets.Radius.Core" Version="1.3.0.4" />
+    <PackageReference Include="Flexinets.Radius.Core" Version="1.4.0" />
   </ItemGroup>
 
 </Project>
