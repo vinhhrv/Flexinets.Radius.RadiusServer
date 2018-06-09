@@ -1,5 +1,9 @@
 # RadiusServer library for .Net.   
-Includes Core functionality for parsing and assembling packets, a server and client
+This project can be used to create a Radius server in for example a Windows Service.
+   
+Packets are handled in multiple threads without running several instances. This can be useful when packet handlers do something slow, like lookups from external dependencies.
+
+
 Pluggable packet handlers for different remote IPs. 
 Conditionally compliant with RFCs  
 https://tools.ietf.org/html/rfc2865  
