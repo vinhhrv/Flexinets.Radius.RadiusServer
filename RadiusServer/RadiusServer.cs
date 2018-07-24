@@ -153,6 +153,15 @@ namespace Flexinets.Radius
                         SendResponsePacket(responsePacket, remoteEndpoint, _dictionary);
                     }
                 }
+                else if (_packetHandlers.TryGetValue(IPAddress.Any, out var anyhandler))
+                {
+                    _log.Debug($"Unknown client {remoteEndpoint}, using fall back handler");
+                    var responsePacket = GetResponsePacket(anyhandler.packetHandler, anyhandler.secret, packetBytes, remoteEndpoint);
+                    if (responsePacket != null)
+                    {
+                        SendResponsePacket(responsePacket, remoteEndpoint, _dictionary);
+                    }
+                }
                 else
                 {
                     _log.Error($"No packet handler found for remote ip {remoteEndpoint}");

@@ -186,5 +186,30 @@ namespace Flexinets.Radius.Tests
             var response = await client.SendMock(new UdpReceiveResult(Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813)));
             Assert.AreEqual(expected, response.Buffer.ToHexString());
         }
+
+
+        /// <summary>
+        /// Test status-server response
+        /// Example from https://tools.ietf.org/html/rfc5997#section-6
+        /// </summary>
+        [TestCase]
+        public async Task TestAnyPacketHandlerMapping()
+        {
+            var request = "0cda00268a54f4686fb394c52866e302185d062350125a665e2e1e8411f3e243822097c84fa3";
+            var expected = "02da0014ef0d552a4bf2d693ec2b6fe8b5411d66";
+            var secret = "xyzzy5461";
+
+
+            var client = new UdpClientMock();
+            var factory = new UdpClientMockFactory(client);
+
+            var dictionary = GetDictionary();
+            var rs = new RadiusServer(factory, new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);            
+            rs.AddPacketHandler(IPAddress.Any, secret, new MockPacketHandler());
+
+            rs.Start();
+            var response = await client.SendMock(new UdpReceiveResult(Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.100"), 1813)));
+            Assert.AreEqual(expected, response.Buffer.ToHexString());
+        }
     }
 }
