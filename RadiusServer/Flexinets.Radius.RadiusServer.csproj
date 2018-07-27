@@ -29,6 +29,7 @@ For an example server implementation hosted in a windows service, see: https://g
   <ItemGroup>
     <PackageReference Include="Flexinets.Net.UdpClient" Version="1.1.1" />
     <PackageReference Include="Flexinets.Radius.Core" Version="1.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore.HttpOverrides" Version="2.1.1" />
   </ItemGroup>
 
 </Project>

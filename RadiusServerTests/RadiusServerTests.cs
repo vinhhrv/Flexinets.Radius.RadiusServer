@@ -1,5 +1,6 @@
 ﻿using Flexinets.Net;
 using Flexinets.Radius.Core;
+using Microsoft.AspNetCore.HttpOverrides;
 using NUnit.Framework;
 using System;
 using System.IO;
@@ -184,6 +185,54 @@ namespace Flexinets.Radius.Tests
             rs.AddPacketHandler(IPAddress.Parse("127.0.0.1"), secret, new MockPacketHandler());
             rs.Start();
             var response = await client.SendMock(new UdpReceiveResult(Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813)));
+            Assert.AreEqual(expected, response.Buffer.ToHexString());
+        }
+
+
+        /// <summary>
+        /// Test status-server response with IPAddress.Any
+        /// Example from https://tools.ietf.org/html/rfc5997#section-6
+        /// </summary>
+        [TestCase]
+        public async Task TestStatusServerAuthenticationResponsePacketUdpClientAny()
+        {
+            var request = "0cda00268a54f4686fb394c52866e302185d062350125a665e2e1e8411f3e243822097c84fa3";
+            var expected = "02da0014ef0d552a4bf2d693ec2b6fe8b5411d66";
+            var secret = "xyzzy5461";
+
+
+            var client = new UdpClientMock();
+            var factory = new UdpClientMockFactory(client);
+
+            var dictionary = GetDictionary();
+            var rs = new RadiusServer(factory, new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
+            rs.AddPacketHandler(IPAddress.Any, secret, new MockPacketHandler());
+            rs.Start();
+            var response = await client.SendMock(new UdpReceiveResult(Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1813)));
+            Assert.AreEqual(expected, response.Buffer.ToHexString());
+        }
+
+
+        /// <summary>
+        /// Test status-server response with IPNetwork
+        /// Example from https://tools.ietf.org/html/rfc5997#section-6
+        /// </summary>
+        [TestCase]
+        public async Task TestStatusServerAuthenticationResponsePacketUdpClientNetwork()
+        {
+            var request = "0cda00268a54f4686fb394c52866e302185d062350125a665e2e1e8411f3e243822097c84fa3";
+            var expected = "02da0014ef0d552a4bf2d693ec2b6fe8b5411d66";
+            var secret = "xyzzy5461";
+
+
+            var client = new UdpClientMock();
+            var factory = new UdpClientMockFactory(client);
+
+            var dictionary = GetDictionary();
+            var rs = new RadiusServer(factory, new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1812), dictionary, RadiusServerType.Authentication);
+            rs.AddPacketHandler(new IPNetwork(IPAddress.Parse("10.0.0.0"), 24), secret, new MockPacketHandler());
+            rs.Start();
+            var response = await client.SendMock(new UdpReceiveResult(Utils.StringToByteArray(request), new IPEndPoint(IPAddress.Parse("10.0.0.254"), 1813)));
             Assert.AreEqual(expected, response.Buffer.ToHexString());
         }
     }

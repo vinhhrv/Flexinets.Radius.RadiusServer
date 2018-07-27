@@ -1,6 +1,7 @@
 ﻿using Flexinets.Net;
 using Flexinets.Radius.Core;
 using log4net;
+using Microsoft.AspNetCore.HttpOverrides;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,7 +22,7 @@ namespace Flexinets.Radius
         private readonly IRadiusDictionary _dictionary;
         private readonly RadiusServerType _serverType;
         private Int32 _concurrentHandlerCount = 0;
-        private readonly Dictionary<IPAddress, (IPacketHandler packetHandler, String secret)> _packetHandlers = new Dictionary<IPAddress, (IPacketHandler, String)>();
+        private readonly PacketHandlerRepository _packetHandlerRepository = new PacketHandlerRepository();
 
         public Boolean Running
         {
@@ -54,7 +55,7 @@ namespace Flexinets.Radius
         public void AddPacketHandler(IPAddress remoteAddress, String sharedSecret, IPacketHandler packetHandler)
         {
             _log.Info($"Adding packet handler of type {packetHandler.GetType()} for remote IP {remoteAddress} to {_serverType}Server");
-            _packetHandlers.Add(remoteAddress, (packetHandler, sharedSecret));
+            _packetHandlerRepository.AddPacketHandler(remoteAddress, packetHandler, sharedSecret);
         }
 
 
@@ -66,10 +67,19 @@ namespace Flexinets.Radius
         /// <param name="packetHandler"></param>
         public void AddPacketHandler(List<IPAddress> remoteAddresses, String sharedSecret, IPacketHandler packetHandler)
         {
-            foreach (var address in remoteAddresses)
-            {
-                _packetHandlers.Add(address, (packetHandler, sharedSecret));
-            }
+            _packetHandlerRepository.AddPacketHandler(remoteAddresses, packetHandler, sharedSecret);
+        }
+
+
+        /// <summary>
+        /// Add packet handler for network range
+        /// </summary>
+        /// <param name="remoteAddresses"></param>
+        /// <param name="sharedSecret"></param>
+        /// <param name="packetHandler"></param>
+        public void AddPacketHandler(IPNetwork network, String sharedSecret, IPacketHandler packetHandler)
+        {
+            _packetHandlerRepository.Add(network, packetHandler, sharedSecret);
         }
 
 
@@ -145,9 +155,9 @@ namespace Flexinets.Radius
             {
                 _log.Debug($"Received packet from {remoteEndpoint}, Concurrent handlers count: {Interlocked.Increment(ref _concurrentHandlerCount)}");
 
-                if (_packetHandlers.TryGetValue(remoteEndpoint.Address, out var handler))
+                if (_packetHandlerRepository.TryGetHandler(remoteEndpoint.Address, out var handler))
                 {
-                    var responsePacket = GetResponsePacket(handler.packetHandler, handler.secret, packetBytes, remoteEndpoint);
+                    var responsePacket = GetResponsePacket(handler.packetHandler, handler.sharedSecret, packetBytes, remoteEndpoint);
                     if (responsePacket != null)
                     {
                         SendResponsePacket(responsePacket, remoteEndpoint, _dictionary);
