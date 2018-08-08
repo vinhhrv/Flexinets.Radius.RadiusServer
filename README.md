@@ -1,4 +1,5 @@
-# RadiusServer library for .Net.   
+# Radius server library for .NET Standard
+
 This project can be used to create a Radius server in for example a Windows Service.
    
 Packets are handled in multiple threads without running several instances. This can be useful when packet handlers do something slow, like lookups from external dependencies.
