@@ -7,7 +7,7 @@ using System.Net;
 
 namespace Flexinets.Radius
 {
-    internal class PacketHandlerRepository
+    public class PacketHandlerRepository : IPacketHandlerRepository
     {
         private readonly Dictionary<IPAddress, (IPacketHandler packetHandler, String secret)> _packetHandlerAddresses = new Dictionary<IPAddress, (IPacketHandler, String)>();
         private readonly Dictionary<IPNetwork, (IPacketHandler packetHandler, String secret)> _packetHandlerNetworks = new Dictionary<IPNetwork, (IPacketHandler, String)>();
