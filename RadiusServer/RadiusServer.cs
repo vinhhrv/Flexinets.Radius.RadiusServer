@@ -22,7 +22,7 @@ namespace Flexinets.Radius
         private readonly IRadiusDictionary _dictionary;
         private readonly RadiusServerType _serverType;
         private Int32 _concurrentHandlerCount = 0;
-        private readonly PacketHandlerRepository _packetHandlerRepository = new PacketHandlerRepository();
+        private readonly IPacketHandlerRepository _packetHandlerRepository;
 
         public Boolean Running
         {
@@ -43,6 +43,23 @@ namespace Flexinets.Radius
             _localEndpoint = localEndpoint;
             _dictionary = dictionary;
             _serverType = serverType;
+            _packetHandlerRepository = new PacketHandlerRepository();
+        }
+
+
+        /// <summary>
+        /// Create a new server on endpoint
+        /// </summary>
+        /// <param name="localEndpoint"></param>
+        /// <param name="dictionary"></param>
+        /// <param name="serverType"></param>
+        public RadiusServer(IUdpClientFactory udpClientFactory, IPEndPoint localEndpoint, IRadiusDictionary dictionary, RadiusServerType serverType, IPacketHandlerRepository packetHandlerRepository)
+        {
+            _udpClientFactory = udpClientFactory;
+            _localEndpoint = localEndpoint;
+            _dictionary = dictionary;
+            _serverType = serverType;
+            _packetHandlerRepository = packetHandlerRepository;
         }
 
 
@@ -52,6 +69,7 @@ namespace Flexinets.Radius
         /// <param name="remoteAddress"></param>
         /// <param name="sharedSecret"></param>
         /// <param name="packetHandler"></param>
+        [Obsolete("Use methods on IPacketHandlerRepository implementation instead")]
         public void AddPacketHandler(IPAddress remoteAddress, String sharedSecret, IPacketHandler packetHandler)
         {
             _log.Info($"Adding packet handler of type {packetHandler.GetType()} for remote IP {remoteAddress} to {_serverType}Server");
@@ -65,6 +83,7 @@ namespace Flexinets.Radius
         /// <param name="remoteAddresses"></param>
         /// <param name="sharedSecret"></param>
         /// <param name="packetHandler"></param>
+        [Obsolete("Use methods on IPacketHandlerRepository implementation instead")]
         public void AddPacketHandler(List<IPAddress> remoteAddresses, String sharedSecret, IPacketHandler packetHandler)
         {
             _packetHandlerRepository.AddPacketHandler(remoteAddresses, packetHandler, sharedSecret);
@@ -77,6 +96,7 @@ namespace Flexinets.Radius
         /// <param name="remoteAddresses"></param>
         /// <param name="sharedSecret"></param>
         /// <param name="packetHandler"></param>
+        [Obsolete("Use methods on IPacketHandlerRepository implementation instead")]
         public void AddPacketHandler(IPNetwork network, String sharedSecret, IPacketHandler packetHandler)
         {
             _packetHandlerRepository.Add(network, packetHandler, sharedSecret);
