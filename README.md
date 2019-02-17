@@ -21,8 +21,13 @@ See https://github.com/vforteli/RadiusServerService/tree/Base for an example imp
 ```
 var path = Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory) + "\\radius.dictionary";
 var dictionary = new RadiusDictionary(path);
-var authenticationServer = new RadiusServer(new IPEndPoint(IPAddress.Any, 1812), dictionary, RadiusServerType.Authentication);                
+var radiusPacketParser = new RadiusPacketParser(NullLogger<RadiusPacketParser>.Instance, dictionary);
+
 var packetHandler = new TestPacketHandler();
+var repository = new PacketHandlerRepository();
+repository.AddPacketHandler(IPAddress.Any, packetHandler, secret);
+
+var authenticationServer = new RadiusServer(new IPEndPoint(IPAddress.Any, 1812), radiusPacketParser, RadiusServerType.Authentication, repository);                
 authenticationServer.AddPacketHandler(IPAddress.Parse("127.0.0.1"), "secret", packetHandler);
 authenticationServer.Start();
 ```  

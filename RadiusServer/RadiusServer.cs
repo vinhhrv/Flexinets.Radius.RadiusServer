@@ -1,7 +1,7 @@
 ﻿using Flexinets.Net;
 using Flexinets.Radius.Core;
-using log4net;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,14 +15,14 @@ namespace Flexinets.Radius
 {
     public sealed class RadiusServer : IDisposable
     {
-        private static readonly ILog _log = LogManager.GetLogger(typeof(RadiusServer));
         private IUdpClient _server;
         private IUdpClientFactory _udpClientFactory;
         private readonly IPEndPoint _localEndpoint;
-        private readonly IRadiusDictionary _dictionary;
+        private readonly IRadiusPacketParser _radiusPacketParser;
         private readonly RadiusServerType _serverType;
         private Int32 _concurrentHandlerCount = 0;
         private readonly IPacketHandlerRepository _packetHandlerRepository;
+        private readonly ILogger _logger;
 
         public Boolean Running
         {
@@ -34,32 +34,34 @@ namespace Flexinets.Radius
         /// <summary>
         /// Create a new server on endpoint
         /// </summary>
+        /// <param name="udpClientFactory"></param>
         /// <param name="localEndpoint"></param>
-        /// <param name="dictionary"></param>
+        /// <param name="radiusPacketParser"></param>
         /// <param name="serverType"></param>
-        public RadiusServer(IUdpClientFactory udpClientFactory, IPEndPoint localEndpoint, IRadiusDictionary dictionary, RadiusServerType serverType)
+        /// <param name="logger"></param>
+        public RadiusServer(IUdpClientFactory udpClientFactory, IPEndPoint localEndpoint, IRadiusPacketParser radiusPacketParser, RadiusServerType serverType, ILogger<RadiusServer> logger) : this
+            (udpClientFactory, localEndpoint, radiusPacketParser, serverType, new PacketHandlerRepository(), logger)
         {
-            _udpClientFactory = udpClientFactory;
-            _localEndpoint = localEndpoint;
-            _dictionary = dictionary;
-            _serverType = serverType;
-            _packetHandlerRepository = new PacketHandlerRepository();
         }
 
 
         /// <summary>
-        /// Create a new server on endpoint
+        /// Create a new server on endpoint with packet handler repository
         /// </summary>
+        /// <param name="udpClientFactory"></param>
         /// <param name="localEndpoint"></param>
-        /// <param name="dictionary"></param>
+        /// <param name="radiusPacketParser"></param>
         /// <param name="serverType"></param>
-        public RadiusServer(IUdpClientFactory udpClientFactory, IPEndPoint localEndpoint, IRadiusDictionary dictionary, RadiusServerType serverType, IPacketHandlerRepository packetHandlerRepository)
+        /// <param name="packetHandlerRepository"></param>
+        /// <param name="logger"></param>
+        public RadiusServer(IUdpClientFactory udpClientFactory, IPEndPoint localEndpoint, IRadiusPacketParser radiusPacketParser, RadiusServerType serverType, IPacketHandlerRepository packetHandlerRepository, ILogger<RadiusServer> logger)
         {
             _udpClientFactory = udpClientFactory;
             _localEndpoint = localEndpoint;
-            _dictionary = dictionary;
+            _radiusPacketParser = radiusPacketParser;
             _serverType = serverType;
             _packetHandlerRepository = packetHandlerRepository;
+            _logger = logger;
         }
 
 
@@ -72,7 +74,7 @@ namespace Flexinets.Radius
         [Obsolete("Use methods on IPacketHandlerRepository implementation instead")]
         public void AddPacketHandler(IPAddress remoteAddress, String sharedSecret, IPacketHandler packetHandler)
         {
-            _log.Info($"Adding packet handler of type {packetHandler.GetType()} for remote IP {remoteAddress} to {_serverType}Server");
+            _logger.LogInformation($"Adding packet handler of type {packetHandler.GetType()} for remote IP {remoteAddress} to {_serverType}Server");
             _packetHandlerRepository.AddPacketHandler(remoteAddress, packetHandler, sharedSecret);
         }
 
@@ -112,13 +114,13 @@ namespace Flexinets.Radius
             {
                 _server = _udpClientFactory.CreateClient(_localEndpoint);
                 Running = true;
-                _log.Info($"Starting Radius server on {_localEndpoint}");
+                _logger.LogInformation($"Starting Radius server on {_localEndpoint}");
                 var receiveTask = StartReceiveLoopAsync();
-                _log.Info("Server started");
+                _logger.LogInformation("Server started");
             }
             else
             {
-                _log.Warn("Server already started");
+                _logger.LogWarning("Server already started");
             }
         }
 
@@ -130,14 +132,14 @@ namespace Flexinets.Radius
         {
             if (Running)
             {
-                _log.Info("Stopping server");
+                _logger.LogInformation("Stopping server");
                 Running = false;
                 _server?.Dispose();
-                _log.Info("Stopped");
+                _logger.LogInformation("Stopped");
             }
             else
             {
-                _log.Warn("Server already stopped");
+                _logger.LogWarning("Server already stopped");
             }
         }
 
@@ -158,7 +160,7 @@ namespace Flexinets.Radius
                 catch (ObjectDisposedException) { } // This is thrown when udpclient is disposed, can be safely ignored
                 catch (Exception ex)
                 {
-                    _log.Fatal("Something went wrong receiving packet", ex);
+                    _logger.LogCritical(ex, "Something went wrong receiving packet");
                 }
             }
         }
@@ -173,32 +175,32 @@ namespace Flexinets.Radius
         {
             try
             {
-                _log.Debug($"Received packet from {remoteEndpoint}, Concurrent handlers count: {Interlocked.Increment(ref _concurrentHandlerCount)}");
+                _logger.LogDebug($"Received packet from {remoteEndpoint}, Concurrent handlers count: {Interlocked.Increment(ref _concurrentHandlerCount)}");
 
                 if (_packetHandlerRepository.TryGetHandler(remoteEndpoint.Address, out var handler))
                 {
                     var responsePacket = GetResponsePacket(handler.packetHandler, handler.sharedSecret, packetBytes, remoteEndpoint);
                     if (responsePacket != null)
                     {
-                        SendResponsePacket(responsePacket, remoteEndpoint, _dictionary);
+                        SendResponsePacket(responsePacket, remoteEndpoint);
                     }
                 }
                 else
                 {
-                    _log.Error($"No packet handler found for remote ip {remoteEndpoint}");
-                    var packet = RadiusPacket.Parse(packetBytes, _dictionary, Encoding.UTF8.GetBytes("wut"));
+                    _logger.LogError($"No packet handler found for remote ip {remoteEndpoint}");
+                    var packet = _radiusPacketParser.Parse(packetBytes, Encoding.UTF8.GetBytes("wut"));
                     DumpPacket(packet);
                 }
             }
             catch (Exception ex) when (ex is ArgumentException || ex is OverflowException)
             {
-                _log.Warn($"Ignoring malformed(?) packet received from {remoteEndpoint}", ex);
-                _log.Debug(packetBytes.ToHexString());
+                _logger.LogWarning($"Ignoring malformed(?) packet received from {remoteEndpoint}", ex);
+                _logger.LogDebug(packetBytes.ToHexString());
             }
             catch (Exception ex)
             {
-                _log.Error($"Failed to receive packet from {remoteEndpoint}", ex);
-                _log.Debug(packetBytes.ToHexString());
+                _logger.LogError(ex, $"Failed to receive packet from {remoteEndpoint}");
+                _logger.LogDebug(packetBytes.ToHexString());
             }
             finally
             {
@@ -217,32 +219,32 @@ namespace Flexinets.Radius
         /// <returns></returns>
         internal IRadiusPacket GetResponsePacket(IPacketHandler packetHandler, String sharedSecret, Byte[] packetBytes, IPEndPoint remoteEndpoint)
         {
-            var requestPacket = RadiusPacket.Parse(packetBytes, _dictionary, Encoding.UTF8.GetBytes(sharedSecret));
-            _log.Info($"Received {requestPacket.Code} from {remoteEndpoint} Id={requestPacket.Identifier}");
+            var requestPacket = _radiusPacketParser.Parse(packetBytes, Encoding.UTF8.GetBytes(sharedSecret));
+            _logger.LogInformation($"Received {requestPacket.Code} from {remoteEndpoint} Id={requestPacket.Identifier}");
 
-            if (_log.IsDebugEnabled)
+            if (_logger.IsEnabled(LogLevel.Debug))
             {
                 DumpPacket(requestPacket);
             }
-            _log.Debug(packetBytes.ToHexString());
+            _logger.LogDebug(packetBytes.ToHexString());
 
             // Handle status server requests in server outside packet handler
             if (requestPacket.Code == PacketCode.StatusServer)
             {
                 var responseCode = _serverType == RadiusServerType.Authentication ? PacketCode.AccessAccept : PacketCode.AccountingResponse;
-                _log.Debug($"Sending {responseCode} for StatusServer request from {remoteEndpoint}");
+                _logger.LogDebug($"Sending {responseCode} for StatusServer request from {remoteEndpoint}");
                 return requestPacket.CreateResponsePacket(responseCode);
             }
 
-            _log.Debug($"Handling packet for remote ip {remoteEndpoint.Address} with {packetHandler.GetType()}");
+            _logger.LogDebug($"Handling packet for remote ip {remoteEndpoint.Address} with {packetHandler.GetType()}");
 
             var sw = Stopwatch.StartNew();
             var responsePacket = packetHandler.HandlePacket(requestPacket);
             sw.Stop();
-            _log.Debug($"{remoteEndpoint} Id={responsePacket.Identifier}, Received {responsePacket.Code} from handler in {sw.ElapsedMilliseconds}ms");
+            _logger.LogDebug($"{remoteEndpoint} Id={responsePacket.Identifier}, Received {responsePacket.Code} from handler in {sw.ElapsedMilliseconds}ms");
             if (sw.ElapsedMilliseconds >= 5000)
             {
-                _log.Warn($"Slow response for Id {responsePacket.Identifier}, check logs");
+                _logger.LogWarning($"Slow response for Id {responsePacket.Identifier}, check logs");
             }
 
             if (requestPacket.Attributes.ContainsKey("Proxy-State"))
@@ -259,12 +261,11 @@ namespace Flexinets.Radius
         /// </summary>
         /// <param name="responsePacket"></param>
         /// <param name="remoteEndpoint"></param>
-        /// <param name="dictionary"></param>
-        private void SendResponsePacket(IRadiusPacket responsePacket, IPEndPoint remoteEndpoint, IRadiusDictionary dictionary)
+        private void SendResponsePacket(IRadiusPacket responsePacket, IPEndPoint remoteEndpoint)
         {
-            var responseBytes = responsePacket.GetBytes(dictionary);
+            var responseBytes = _radiusPacketParser.GetBytes(responsePacket);
             _server.Send(responseBytes, responseBytes.Length, remoteEndpoint);   // todo thread safety... although this implementation will be implicitly thread safeish...
-            _log.Info($"{responsePacket.Code} sent to {remoteEndpoint} Id={responsePacket.Identifier}");
+            _logger.LogInformation($"{responsePacket.Code} sent to {remoteEndpoint} Id={responsePacket.Identifier}");
         }
 
 
@@ -281,7 +282,7 @@ namespace Flexinets.Radius
         /// Dump the packet attributes to the log
         /// </summary>
         /// <param name="packet"></param>
-        private static void DumpPacket(IRadiusPacket packet)
+        private void DumpPacket(IRadiusPacket packet)
         {
             var sb = new StringBuilder();
             sb.AppendLine($"Packet dump for {packet.Identifier}:");
@@ -296,7 +297,8 @@ namespace Flexinets.Radius
                     attribute.Value.ForEach(o => sb.AppendLine($"{attribute.Key} : {o} [{o.GetType()}]"));
                 }
             }
-            _log.Debug(sb.ToString());
+
+            _logger.LogDebug(sb.ToString());
         }
     }
 }
