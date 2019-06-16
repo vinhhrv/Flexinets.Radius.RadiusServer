@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RadiusServer.Tests", "Radiu
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Flexinets.Radius.RadiusServer", "RadiusServer\Flexinets.Radius.RadiusServer.csproj", "{7C119506-7317-4BC0-9477-446E854D5EA2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RadiusServerConsoleTests", "RadiusServerConsoleTests\RadiusServerConsoleTests.csproj", "{19C87ADC-B0B1-4875-A006-821393B4ACFE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,6 +26,10 @@ Global
 		{7C119506-7317-4BC0-9477-446E854D5EA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C119506-7317-4BC0-9477-446E854D5EA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7C119506-7317-4BC0-9477-446E854D5EA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19C87ADC-B0B1-4875-A006-821393B4ACFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19C87ADC-B0B1-4875-A006-821393B4ACFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19C87ADC-B0B1-4875-A006-821393B4ACFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19C87ADC-B0B1-4875-A006-821393B4ACFE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
