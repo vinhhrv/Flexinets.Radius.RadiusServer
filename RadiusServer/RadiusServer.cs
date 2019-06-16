@@ -7,9 +7,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
+[assembly: InternalsVisibleTo("RadiusServer.Tests")]
+[assembly: InternalsVisibleTo("Flexinets.Radius.RadiusServer.Tests")]
 
 namespace Flexinets.Radius
 {
