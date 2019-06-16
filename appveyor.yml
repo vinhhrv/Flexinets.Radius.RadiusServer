@@ -1,7 +1,0 @@
-version: 1.0.{build}
-image: Visual Studio 2017
-clone_folder: c:/projects/radiusserver/
-before_build:
-- cmd: nuget restore C:/projects/radiusserver/flexinets.radius.radiusserver.sln -PackagesDirectory C:/projects/radiusserver/packages/
-build:
-  verbosity: minimal

@@ -68,47 +68,6 @@ namespace Flexinets.Radius
             _logger = logger;
         }
 
-
-        /// <summary>
-        /// Add packet handler for remote endpoint
-        /// </summary>
-        /// <param name="remoteAddress"></param>
-        /// <param name="sharedSecret"></param>
-        /// <param name="packetHandler"></param>
-        [Obsolete("Use methods on IPacketHandlerRepository implementation instead")]
-        public void AddPacketHandler(IPAddress remoteAddress, String sharedSecret, IPacketHandler packetHandler)
-        {
-            _logger.LogInformation($"Adding packet handler of type {packetHandler.GetType()} for remote IP {remoteAddress} to {_serverType}Server");
-            _packetHandlerRepository.AddPacketHandler(remoteAddress, packetHandler, sharedSecret);
-        }
-
-
-        /// <summary>
-        /// Add packet handler for multiple remote endpoints
-        /// </summary>
-        /// <param name="remoteAddresses"></param>
-        /// <param name="sharedSecret"></param>
-        /// <param name="packetHandler"></param>
-        [Obsolete("Use methods on IPacketHandlerRepository implementation instead")]
-        public void AddPacketHandler(List<IPAddress> remoteAddresses, String sharedSecret, IPacketHandler packetHandler)
-        {
-            _packetHandlerRepository.AddPacketHandler(remoteAddresses, packetHandler, sharedSecret);
-        }
-
-
-        /// <summary>
-        /// Add packet handler for network range
-        /// </summary>
-        /// <param name="remoteAddresses"></param>
-        /// <param name="sharedSecret"></param>
-        /// <param name="packetHandler"></param>
-        [Obsolete("Use methods on IPacketHandlerRepository implementation instead")]
-        public void AddPacketHandler(IPNetwork network, String sharedSecret, IPacketHandler packetHandler)
-        {
-            _packetHandlerRepository.Add(network, packetHandler, sharedSecret);
-        }
-
-
         /// <summary>
         /// Start listening for requests
         /// </summary>
