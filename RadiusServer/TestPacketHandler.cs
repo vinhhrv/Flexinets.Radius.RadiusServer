@@ -13,6 +13,22 @@ namespace Flexinets.Radius
             // Simulate lag
             //Thread.Sleep(new Random().Next(100, 3000));
 
+
+            if (packet.Authenticator != null)
+                Console.WriteLine($"Authenticator {packet.Authenticator.ToHexString()}");
+            if (packet.SharedSecret != null)
+                Console.WriteLine($"SharedSecret {packet.SharedSecret.ToHexString()}");
+
+            foreach (var att in packet.Attributes)
+            {
+                Console.WriteLine($"ATT : {att.Key} - {att.Value}");
+            }
+
+            var userName = packet.GetAttribute<String>("User-Name");
+            var password = packet.GetAttribute<String>("User-Password");
+            var chap_password = packet.GetAttribute<byte[]>("CHAP-Password");
+            Console.WriteLine($"userName {userName} password : {password} chap-password : {chap_password?.ToHexString()}");
+
             if (packet.Code == PacketCode.AccountingRequest)
             {
                 var acctStatusType = packet.GetAttribute<AcctStatusType>("Acct-Status-Type");
@@ -33,6 +49,8 @@ namespace Flexinets.Radius
             }
             else if (packet.Code == PacketCode.AccessRequest)
             {
+                
+
                 if (packet.GetAttribute<String>("User-Name") == "user@example.com" && packet.GetAttribute<String>("User-Password") == "1234")
                 {
                     var response = packet.CreateResponsePacket(PacketCode.AccessAccept);
